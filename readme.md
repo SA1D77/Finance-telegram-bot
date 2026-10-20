@@ -18,6 +18,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 ⚡ **Quick entry:** type `500 кафе обед` (expense with a comment), `+50000 зарплата` (income) or `1200+350*2 продукты` (calculator, shown before saving). Unknown or similar categories are confirmed with buttons; `FEATURE_QUICK_INPUT=0` turns it off. The calculator also works in the amount step of the buttons.
 
+📜 **History and edits:** `/history` (or the 📜 button) lists operations 5 per page with period and category filters; open one to change its amount, category, comment or date, or delete it after a confirmation. Every saved operation gets a ↩️ Undo button, and `/undo` offers to delete the last one. Dates are shown and typed in `TIMEZONE` (default UTC). `FEATURE_HISTORY=0` turns it off.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.
