@@ -20,6 +20,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 📜 **History and edits:** `/history` (or the 📜 button) lists operations 5 per page with period and category filters; open one to change its amount, category, comment or date, or delete it after a confirmation. Every saved operation gets a ↩️ Undo button, and `/undo` offers to delete the last one. Dates are shown and typed in `TIMEZONE` (default UTC). `FEATURE_HISTORY=0` turns it off.
 
+🎯 **Budgets:** `/budget` (or the 🎯 button) shows this month's progress for an overall limit and per-category limits, what is left and how much you can spend per day. After every expense or edit the bot queues a Celery check; at 80% and 100% the worker sends a notification, at most once per threshold per month (a unique key in `budget_alerts` guarantees it). `FEATURE_BUDGETS=0` turns it off. Months follow `TIMEZONE`.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.
