@@ -538,3 +538,47 @@ msgstr "That doesn't look like an email address. Please try again"
 #: src/telegram/category_handlers.py
 msgid "Название категории должно быть от 1 до 64 символов"
 msgstr "A category name must be 1 to 64 characters long"
+
+#: src/quick_input/handlers.py
+msgid "Не получилось посчитать сумму. Пример: 500 кафе обед или 1200+350*2 продукты"
+msgstr "Couldn't work out the amount. Example: 500 cafe lunch or 1200+350*2 groceries"
+
+#: src/quick_input/handlers.py
+msgid "Сохранить?"
+msgstr "Save?"
+
+#: src/quick_input/handlers.py
+msgid "✅ Сохранить"
+msgstr "✅ Save"
+
+#: src/quick_input/handlers.py
+msgid "Категория «{name}»?"
+msgstr "Category “{name}”?"
+
+#: src/quick_input/handlers.py
+msgid "✅ Да, «{name}»"
+msgstr "✅ Yes, “{name}”"
+
+#: src/quick_input/handlers.py
+msgid "🗂 Другая категория"
+msgstr "🗂 Another category"
+
+#: src/quick_input/handlers.py
+msgid "Какую категорию вы имели в виду?"
+msgstr "Which category did you mean?"
+
+#: src/quick_input/handlers.py
+msgid "Категории «{name}» нет."
+msgstr "There is no category “{name}”."
+
+#: src/quick_input/handlers.py
+msgid "➕ Создать «{name}»"
+msgstr "➕ Create “{name}”"
+
+#: src/quick_input/handlers.py
+msgid "Эта кнопка устарела. Отправьте операцию ещё раз."
+msgstr "This button is out of date. Send the entry again."
+
+#: src/telegram/messages.py
+msgid "⚡ Быстрый ввод: напишите сумму и категорию одним сообщением.\n\n<code>500 кафе обед</code> — расход с комментарием\n<code>+50000 зарплата</code> — доход\n<code>1200+350*2 продукты</code> — с калькулятором\n\nЕсли категории нет или она похожа на другую, бот переспросит."
+msgstr "⚡ Quick entry: type the amount and the category in one message.\n\n<code>500 cafe lunch</code> — an expense with a comment\n<code>+50000 salary</code> — income\n<code>1200+350*2 groceries</code> — with the calculator\n\nIf the category does not exist or looks like another one, the bot will ask."

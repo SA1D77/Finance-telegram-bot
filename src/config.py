@@ -40,6 +40,14 @@ SMTP_PORT = os.environ.get('SMTP_PORT')
 SMTP_USER = os.environ.get('SMTP_USER')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
 
+
+def _flag(name: str) -> bool:
+    """Feature flags: on by default, FEATURE_<NAME>=0 turns one off."""
+    return os.environ.get(name, '1').strip() != '0'
+
+
+FEATURE_QUICK_INPUT = _flag('FEATURE_QUICK_INPUT')
+
 CELERY_HOST = os.environ.get('CELERY_HOST')
 CELERY_PORT = os.environ.get('CELERY_PORT')
 

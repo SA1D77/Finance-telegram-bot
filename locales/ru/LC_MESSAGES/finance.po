@@ -532,3 +532,47 @@ msgstr ""
 #: src/telegram/category_handlers.py
 msgid "Название категории должно быть от 1 до 64 символов"
 msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "Не получилось посчитать сумму. Пример: 500 кафе обед или 1200+350*2 продукты"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "Сохранить?"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "✅ Сохранить"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "Категория «{name}»?"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "✅ Да, «{name}»"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "🗂 Другая категория"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "Какую категорию вы имели в виду?"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "Категории «{name}» нет."
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "➕ Создать «{name}»"
+msgstr ""
+
+#: src/quick_input/handlers.py
+msgid "Эта кнопка устарела. Отправьте операцию ещё раз."
+msgstr ""
+
+#: src/telegram/messages.py
+msgid "⚡ Быстрый ввод: напишите сумму и категорию одним сообщением.\n\n<code>500 кафе обед</code> — расход с комментарием\n<code>+50000 зарплата</code> — доход\n<code>1200+350*2 продукты</code> — с калькулятором\n\nЕсли категории нет или она похожа на другую, бот переспросит."
+msgstr ""
