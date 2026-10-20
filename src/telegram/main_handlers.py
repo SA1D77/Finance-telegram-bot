@@ -15,8 +15,22 @@ from middleware.accounting import (
     _add_expenditure,
 )
 from middleware.accounting import _show_all_categories
+from middleware.general_handlers import category_does_not_exist
+from exception import CategoryDoesNotExist
 
 router = Router(name='main')
+
+
+async def _own_category(callback_query: types.CallbackQuery, state: FSMContext, category: str, username: str) -> bool:
+    """Callback data comes from the client: accept only the user's own active categories."""
+    try:
+        await category_does_not_exist(category=category, username=username)
+    except CategoryDoesNotExist:
+        await callback_query.message.answer(text=_('Мне кажется или такой категории нет?'), reply_markup=await buttons.get_button_manage_money())
+        await state.clear()
+        await callback_query.answer()
+        return False
+    return True
 
 
 @router.message(F.text == __('➕ Доход'), StateFilter(None))
@@ -64,6 +78,10 @@ async def income_category_input_handler(callback_query: types.CallbackQuery, sta
     total = data.get('total')
     username = data.get('username')
     text = callback_query.data.replace('category_', '').lower()
+
+    if not await _own_category(callback_query, state, category=text, username=username):
+        return
+
     await _add_income(
         username=username,
         category=text,
@@ -97,6 +115,10 @@ async def expenditure_category_input_handler(callback_query: types.CallbackQuery
     total = data.get('total')
     username = data.get('username')
     text = callback_query.data.replace('category_', '').lower()
+
+    if not await _own_category(callback_query, state, category=text, username=username):
+        return
+
     await _add_expenditure(
         username=username,
         category=text,

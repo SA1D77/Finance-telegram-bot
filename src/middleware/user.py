@@ -28,12 +28,9 @@ async def _language_locale(username: str, lang: str):
 async def _get_user_lang(username: str):
     response = await redis.get(name=username + ':lang')
 
-    try:
-        response = response.decode("utf-8")
-    except AttributeError:
-        pass
-    finally:
-        return response
+    if isinstance(response, bytes):
+        return response.decode("utf-8")
+    return response
 
 
 async def _get_users_email(username: str):

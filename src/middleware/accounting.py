@@ -101,11 +101,10 @@ async def _delete_category(username: str, category: str):
 
 
 async def _get_category(category: str, username: str):
-    response = await redis.get(name=username + 'categories')
-    if response is None:
-        return None
+    response = await _show_all_categories(username=username)
 
-    if category.capitalize() not in response.decode("utf-8"):
+    # Exact match on a whole line: a substring check matched "еда" inside "Еда вне дома".
+    if not category or category.capitalize() not in response.split('\n'):
         return None
 
     return category
@@ -113,7 +112,7 @@ async def _get_category(category: str, username: str):
 
 async def _get_accounts(username: str, time: str):
     if time == 'last':
-        statement = select(Accounting).order_by(desc(Accounting.created_at)).limit(10)
+        statement = select(Accounting).where(Accounting.user_id == username).order_by(desc(Accounting.created_at)).limit(10)
     else:
         threshold_date = datetime.utcnow() - timedelta(days=int(time))
         statement = select(Accounting).where(and_(Accounting.user_id == username, extract('epoch', Accounting.created_at) >= threshold_date.timestamp()))
