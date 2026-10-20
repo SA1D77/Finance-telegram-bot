@@ -51,6 +51,7 @@ FEATURE_HISTORY = _flag('FEATURE_HISTORY')
 FEATURE_BUDGETS = _flag('FEATURE_BUDGETS')
 FEATURE_ANALYTICS = _flag('FEATURE_ANALYTICS')
 FEATURE_RECURRING = _flag('FEATURE_RECURRING')
+FEATURE_GOALS = _flag('FEATURE_GOALS')
 
 # IANA zone used to show and type dates, e.g. Asia/Tashkent or Europe/Moscow.
 TIMEZONE = (os.environ.get('TIMEZONE') or 'UTC').strip()

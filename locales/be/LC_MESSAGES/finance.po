@@ -974,3 +974,95 @@ msgstr "Выдаліць гэтую рэгулярную аперацыю?"
 #: src/recurring/handlers.py
 msgid "Удалено"
 msgstr "Выдалена"
+
+#: src/goals/handlers.py
+msgid "{saved} из {target}"
+msgstr "{saved} з {target}"
+
+#: src/goals/handlers.py
+msgid "Цель достигнута!"
+msgstr "Мэта дасягнута!"
+
+#: src/goals/handlers.py
+msgid "до {date}"
+msgstr "да {date}"
+
+#: src/goals/handlers.py
+msgid "откладывать {amount} в месяц"
+msgstr "адкладаць {amount} у месяц"
+
+#: src/goals/handlers.py
+msgid "срок прошёл"
+msgstr "тэрмін мінуў"
+
+#: src/goals/handlers.py
+msgid "💰 Пополнить"
+msgstr "💰 Папоўніць"
+
+#: src/goals/handlers.py
+msgid "➖ Снять"
+msgstr "➖ Зняць"
+
+#: src/goals/handlers.py
+msgid "🎯 Сумма цели"
+msgstr "🎯 Сума мэты"
+
+#: src/goals/handlers.py
+msgid "📅 Срок"
+msgstr "📅 Тэрмін"
+
+#: src/goals/handlers.py
+msgid "🐷 Цели накопления"
+msgstr "🐷 Мэты назапашвання"
+
+#: src/goals/handlers.py
+msgid "Целей пока нет. Например: отпуск, ноутбук, подушка безопасности."
+msgstr "Мэтаў пакуль няма. Напрыклад: адпачынак, ноўтбук, падушка бяспекі."
+
+#: src/goals/handlers.py
+msgid "➕ Новая цель"
+msgstr "➕ Новая мэта"
+
+#: src/goals/handlers.py
+msgid "Цель не найдена."
+msgstr "Мэта не знойдзена."
+
+#: src/telegram/buttons.py
+msgid "🐷 Цели"
+msgstr "🐷 Мэты"
+
+#: src/goals/handlers.py
+msgid "Как назовём цель?"
+msgstr "Як назавём мэту?"
+
+#: src/goals/handlers.py
+msgid "Название должно быть от 1 до 64 символов"
+msgstr "Назва павінна быць ад 1 да 64 сімвалаў"
+
+#: src/goals/handlers.py
+msgid "Сколько нужно накопить?"
+msgstr "Колькі трэба назапасіць?"
+
+#: src/goals/handlers.py
+msgid "До какой даты? Например 31.12.2026, или «-», если срока нет"
+msgstr "Да якой даты? Напрыклад 31.12.2026, або «-», калі тэрміну няма"
+
+#: src/goals/handlers.py
+msgid "Нужна будущая дата, например 31.12.2026, или «-»"
+msgstr "Патрэбна будучая дата, напрыклад 31.12.2026, або «-»"
+
+#: src/goals/handlers.py
+msgid "Сколько отложить?"
+msgstr "Колькі адкласці?"
+
+#: src/goals/handlers.py
+msgid "Сколько снять?"
+msgstr "Колькі зняць?"
+
+#: src/goals/handlers.py
+msgid "Можно снять не больше {saved}"
+msgstr "Можна зняць не больш за {saved}"
+
+#: src/goals/handlers.py
+msgid "Удалить эту цель?"
+msgstr "Выдаліць гэтую мэту?"

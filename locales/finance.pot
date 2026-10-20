@@ -963,3 +963,95 @@ msgstr ""
 #: src/recurring/handlers.py
 msgid "Удалено"
 msgstr ""
+
+#: src/goals/handlers.py
+msgid "{saved} из {target}"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Цель достигнута!"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "до {date}"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "откладывать {amount} в месяц"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "срок прошёл"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "💰 Пополнить"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "➖ Снять"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "🎯 Сумма цели"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "📅 Срок"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "🐷 Цели накопления"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Целей пока нет. Например: отпуск, ноутбук, подушка безопасности."
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "➕ Новая цель"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Цель не найдена."
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "🐷 Цели"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Как назовём цель?"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Название должно быть от 1 до 64 символов"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Сколько нужно накопить?"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "До какой даты? Например 31.12.2026, или «-», если срока нет"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Нужна будущая дата, например 31.12.2026, или «-»"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Сколько отложить?"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Сколько снять?"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Можно снять не больше {saved}"
+msgstr ""
+
+#: src/goals/handlers.py
+msgid "Удалить эту цель?"
+msgstr ""

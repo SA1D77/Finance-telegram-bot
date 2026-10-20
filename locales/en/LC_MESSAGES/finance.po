@@ -990,3 +990,95 @@ msgstr "Delete this recurring operation?"
 #: src/recurring/handlers.py
 msgid "Удалено"
 msgstr "Deleted"
+
+#: src/goals/handlers.py
+msgid "{saved} из {target}"
+msgstr "{saved} of {target}"
+
+#: src/goals/handlers.py
+msgid "Цель достигнута!"
+msgstr "Goal reached!"
+
+#: src/goals/handlers.py
+msgid "до {date}"
+msgstr "by {date}"
+
+#: src/goals/handlers.py
+msgid "откладывать {amount} в месяц"
+msgstr "put aside {amount} a month"
+
+#: src/goals/handlers.py
+msgid "срок прошёл"
+msgstr "deadline passed"
+
+#: src/goals/handlers.py
+msgid "💰 Пополнить"
+msgstr "💰 Top up"
+
+#: src/goals/handlers.py
+msgid "➖ Снять"
+msgstr "➖ Withdraw"
+
+#: src/goals/handlers.py
+msgid "🎯 Сумма цели"
+msgstr "🎯 Target"
+
+#: src/goals/handlers.py
+msgid "📅 Срок"
+msgstr "📅 Deadline"
+
+#: src/goals/handlers.py
+msgid "🐷 Цели накопления"
+msgstr "🐷 Savings goals"
+
+#: src/goals/handlers.py
+msgid "Целей пока нет. Например: отпуск, ноутбук, подушка безопасности."
+msgstr "No goals yet. For example: a holiday, a laptop, an emergency fund."
+
+#: src/goals/handlers.py
+msgid "➕ Новая цель"
+msgstr "➕ New goal"
+
+#: src/goals/handlers.py
+msgid "Цель не найдена."
+msgstr "Goal not found."
+
+#: src/telegram/buttons.py
+msgid "🐷 Цели"
+msgstr "🐷 Goals"
+
+#: src/goals/handlers.py
+msgid "Как назовём цель?"
+msgstr "What is the goal called?"
+
+#: src/goals/handlers.py
+msgid "Название должно быть от 1 до 64 символов"
+msgstr "The name must be 1 to 64 characters long"
+
+#: src/goals/handlers.py
+msgid "Сколько нужно накопить?"
+msgstr "How much do you need to save?"
+
+#: src/goals/handlers.py
+msgid "До какой даты? Например 31.12.2026, или «-», если срока нет"
+msgstr "By what date? For example 31.12.2026, or \"-\" for no deadline"
+
+#: src/goals/handlers.py
+msgid "Нужна будущая дата, например 31.12.2026, или «-»"
+msgstr "A future date is needed, e.g. 31.12.2026, or \"-\""
+
+#: src/goals/handlers.py
+msgid "Сколько отложить?"
+msgstr "How much to put aside?"
+
+#: src/goals/handlers.py
+msgid "Сколько снять?"
+msgstr "How much to withdraw?"
+
+#: src/goals/handlers.py
+msgid "Можно снять не больше {saved}"
+msgstr "You can withdraw at most {saved}"
+
+#: src/goals/handlers.py
+msgid "Удалить эту цель?"
+msgstr "Delete this goal?"

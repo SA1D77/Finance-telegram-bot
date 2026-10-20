@@ -3,7 +3,7 @@ from typing import Optional
 
 from aiogram import types
 
-from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY, FEATURE_RECURRING
+from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_GOALS, FEATURE_HISTORY, FEATURE_RECURRING
 from i18n import _
 
 
@@ -29,6 +29,8 @@ async def get_button_manage_money(lang=None):
     extra_row = []
     if FEATURE_RECURRING:
         extra_row.append(types.KeyboardButton(text=_('🔁 Регулярные', locale=lang)))
+    if FEATURE_GOALS:
+        extra_row.append(types.KeyboardButton(text=_('🐷 Цели', locale=lang)))
 
     rows = [first_row,
             [button_income, button_expense],

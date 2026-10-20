@@ -26,6 +26,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 🔁 **Recurring operations:** `/recurring` (or the 🔁 button) keeps templates such as a salary or a bill: daily, weekly or monthly (a monthly 31st stays on the last day of shorter months), a start date and an optional reminder 1/3/7 days before. The `beat` container runs a job every 10 minutes; due operations are created (missed days are caught up), each with ↩️ Undo, and reminders offer ⏭ Skip or a new amount. A compare-and-set on the template's next date makes double creation impossible. `FEATURE_RECURRING=0` turns it off.
 
+🐷 **Savings goals:** `/goals` (or the 🐷 button): a name, a target and an optional deadline; progress bar, what is left and how much to put aside per month to make it on time; top up or withdraw from the bot. Money in goals is tracked separately and does not change the balance. `FEATURE_GOALS=0` turns it off.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.

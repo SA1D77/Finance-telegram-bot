@@ -440,3 +440,28 @@ async def test_recurring_worker_sends_messages(db):
     assert chat_id == OWNER and 'Добавлено по расписанию (22.10.2026)' in text and '5000.00 интернет' in text
     assert markup.inline_keyboard[0][0].callback_data.startswith('h:undo:')
     assert await tasks.run(bot=FakeBot(), today=date(2026, 10, 22)) == 0
+
+
+async def test_goals_progress_and_isolation(db):
+    from datetime import date
+    from goals import service as goals
+    for uid in (OWNER, OTHER):
+        await user.ensure_user(uid, None)
+    goal_id = await goals.create(OWNER, 'Отпуск', Decimal('100000'), date(2026, 12, 31))
+    foreign = await goals.create(OTHER, 'Чужая', Decimal('1'), None)
+
+    assert await goals.contribute(OWNER, goal_id, Decimal('30000')) is True
+    assert await goals.contribute(OWNER, goal_id, Decimal('-5000')) is True
+    assert await goals.contribute(OWNER, foreign, Decimal('1')) is False
+
+    goal = await goals.get(OWNER, goal_id)
+    assert (goal.saved, goal.percent, goal.left) == (Decimal('25000.00'), 25, Decimal('75000.00'))
+    assert [g.name for g in await goals.list_for(OWNER)] == ['Отпуск']
+    assert await goals.get(OWNER, foreign) is None
+    assert await goals.update_fields(OTHER, goal_id, target=Decimal('1')) is False
+    assert await goals.update_fields(OWNER, goal_id, target=Decimal('120000'), deadline=None) is True
+    assert (await goals.get(OWNER, goal_id)).target == Decimal('120000.00')
+    assert await goals.remove(OTHER, goal_id) is False
+    assert await goals.remove(OWNER, goal_id) is True
+    assert await goals.list_for(OWNER) == []
+    assert await accounting._get_balance(OWNER) == Decimal('0')  # goals do not touch the balance
