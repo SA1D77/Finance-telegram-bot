@@ -52,6 +52,15 @@ FEATURE_BUDGETS = _flag('FEATURE_BUDGETS')
 FEATURE_ANALYTICS = _flag('FEATURE_ANALYTICS')
 FEATURE_RECURRING = _flag('FEATURE_RECURRING')
 FEATURE_GOALS = _flag('FEATURE_GOALS')
+FEATURE_EXPORT = _flag('FEATURE_EXPORT')
+FEATURE_BACKUP = _flag('FEATURE_BACKUP')
+
+# Database backups (pg_dump in the celery container, scheduled by beat).
+BACKUP_DIR = os.environ.get('BACKUP_DIR') or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backups')
+BACKUP_HOUR = int(os.environ.get('BACKUP_HOUR') or 3)
+BACKUP_KEEP = int(os.environ.get('BACKUP_KEEP') or 7)
+BACKUP_TO_TELEGRAM = _flag('BACKUP_TO_TELEGRAM')
+BACKUP_PG_DUMP = os.environ.get('BACKUP_PG_DUMP') or 'pg_dump'
 
 # IANA zone used to show and type dates, e.g. Asia/Tashkent or Europe/Moscow.
 TIMEZONE = (os.environ.get('TIMEZONE') or 'UTC').strip()

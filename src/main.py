@@ -39,6 +39,8 @@ async def main() -> None:
         BotCommand(command='recurring', description='Регулярные операции'),
         BotCommand(command='goals', description='Цели накопления'),
         BotCommand(command='report', description='Отчёт за период'),
+        BotCommand(command='export', description='Экспорт в CSV / XLSX'),
+        BotCommand(command='backup', description='Резервная копия сейчас'),
     ])
 
     try:

@@ -28,6 +28,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 🐷 **Savings goals:** `/goals` (or the 🐷 button): a name, a target and an optional deadline; progress bar, what is left and how much to put aside per month to make it on time; top up or withdraw from the bot. Money in goals is tracked separately and does not change the balance. `FEATURE_GOALS=0` turns it off.
 
+📤 **Export and backups:** `/export` sends operations for a period as CSV (UTF-8 with BOM, `;`, opens in Excel) or XLSX, built in memory. Every day at `BACKUP_HOUR` the worker runs `pg_dump` (client 15 in the image), gzips it to `./backups`, keeps the newest `BACKUP_KEEP` and sends the file to you; `/backup` makes one now. Restore: stop the bot and run `restore.bat backupsinance-….sql.gz` (Windows), or `gunzip -c FILE | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`. The dump uses `--clean --if-exists`, so it replaces the current data.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.

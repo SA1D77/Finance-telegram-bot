@@ -1,4 +1,5 @@
 """Data layer against a real, freshly migrated PostgreSQL database (needs TEST_PG_URL)."""
+import gzip
 import os
 import subprocess
 import sys
@@ -465,3 +466,40 @@ async def test_goals_progress_and_isolation(db):
     assert await goals.remove(OWNER, goal_id) is True
     assert await goals.list_for(OWNER) == []
     assert await accounting._get_balance(OWNER) == Decimal('0')  # goals do not touch the balance
+
+
+@pytest.mark.skipif(not os.environ.get('TEST_PG_BIN'), reason='TEST_PG_BIN (folder with pg_dump and psql) is not set')
+async def test_backup_and_restore_round_trip(db, tmp_path):
+    from datetime import datetime
+    from backup import dump as backup_dump
+    await user.ensure_user(OWNER, 'owner')
+    await accounting._add_new_category('кафе', OWNER)
+    category = (await accounting._show_all_categories(OWNER))[0].id
+    await accounting._add_operation(OWNER, category, Decimal('1250.50'), accounting.OperationType.expenditure, comment='ужин')
+
+    url = urlparse(TEST_PG_URL)
+    bin_dir = Path(os.environ['TEST_PG_BIN'])
+    source = service.async_sessioin_maker.kw['bind'].url.database
+    params = backup_dump.DbParams(host=url.hostname, port=str(url.port or 5432), user=url.username,
+                                  password=url.password, database=source)
+    path = backup_dump.create_backup(params, str(tmp_path), datetime(2026, 10, 22, 3, 0), pg_dump=str(bin_dir / 'pg_dump'))
+    assert path.name == 'finance-2026-10-22_030000.sql.gz' and path.stat().st_size > 0
+
+    target = f'restore_test_{uuid.uuid4().hex[:8]}'
+    admin = psycopg2.connect(TEST_PG_URL)
+    admin.autocommit = True
+    admin.cursor().execute(f'CREATE DATABASE {target}')
+    try:
+        with gzip.open(path, 'rb') as sql:
+            subprocess.run([str(bin_dir / 'psql'), '-q', '-h', url.hostname, '-p', str(url.port), '-U', url.username, '-d', target],
+                           input=sql.read(), env=backup_dump.dump_env(params), check=True, capture_output=True)
+        with psycopg2.connect(host=url.hostname, port=url.port, user=url.username, password=url.password, dbname=target) as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT a.quantity, a.comment, c.name, u.username FROM accounting a '
+                        'JOIN categories c ON c.id = a.category_id JOIN "user" u ON u.id = a.user_id')
+            assert cur.fetchall() == [(Decimal('1250.50'), 'ужин', 'кафе', 'owner')]
+            cur.execute('SELECT version_num FROM alembic_version')
+            assert cur.fetchone() is not None
+    finally:
+        admin.cursor().execute(f'DROP DATABASE IF EXISTS {target} WITH (FORCE)')
+        admin.close()

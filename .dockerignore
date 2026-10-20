@@ -4,3 +4,4 @@ venv/
 **/.env
 **/__pycache__
 src/report/generated/
+backups/

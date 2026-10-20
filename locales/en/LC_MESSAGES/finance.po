@@ -1082,3 +1082,27 @@ msgstr "You can withdraw at most {saved}"
 #: src/goals/handlers.py
 msgid "Удалить эту цель?"
 msgstr "Delete this goal?"
+
+#: src/export/handlers.py
+msgid "В каком формате?"
+msgstr "Which format?"
+
+#: src/export/handlers.py
+msgid "Всё время"
+msgstr "All time"
+
+#: src/export/handlers.py
+msgid "Экспорт операций. За какой период?"
+msgstr "Export operations. For what period?"
+
+#: src/export/handlers.py
+msgid "Операций: {count}"
+msgstr "Operations: {count}"
+
+#: src/export/handlers.py
+msgid "Готовлю резервную копию, пришлю файл через минуту."
+msgstr "Making a backup, the file will arrive in a minute."
+
+#: src/export/handlers.py
+msgid "Не удалось поставить задачу: проверьте, что контейнер celery запущен."
+msgstr "Could not queue the task: check that the celery container is running."

@@ -1055,3 +1055,27 @@ msgstr ""
 #: src/goals/handlers.py
 msgid "Удалить эту цель?"
 msgstr ""
+
+#: src/export/handlers.py
+msgid "В каком формате?"
+msgstr ""
+
+#: src/export/handlers.py
+msgid "Всё время"
+msgstr ""
+
+#: src/export/handlers.py
+msgid "Экспорт операций. За какой период?"
+msgstr ""
+
+#: src/export/handlers.py
+msgid "Операций: {count}"
+msgstr ""
+
+#: src/export/handlers.py
+msgid "Готовлю резервную копию, пришлю файл через минуту."
+msgstr ""
+
+#: src/export/handlers.py
+msgid "Не удалось поставить задачу: проверьте, что контейнер celery запущен."
+msgstr ""
