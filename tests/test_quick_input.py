@@ -185,7 +185,8 @@ async def test_bad_amount_gets_a_hint(harness, db):
 async def test_plain_text_is_not_quick_input(harness, db):
     await harness.feed(make_message('привет'))
 
-    assert harness.session.requests == []
+    assert db.saved == []
+    assert harness.session.texts()[-1].startswith('Не понял.')  # the fallback answers instead of silence
 
 
 async def test_category_names_are_html_escaped(harness, db):

@@ -1138,3 +1138,11 @@ msgstr "Could not find the total on the receipt. Try a straighter photo or type 
 #: src/media/handlers.py
 msgid "🧾 Итог по чеку: {amount}"
 msgstr "🧾 Receipt total: {amount}"
+
+#: src/telegram/fallback_handlers.py
+msgid "Сейчас я жду выбор кнопкой выше. Чтобы выйти, нажмите «⬅️ Отмена» или любую кнопку меню."
+msgstr "I am waiting for a choice with the buttons above. To leave, press \"⬅️ Cancel\" or any menu button."
+
+#: src/telegram/fallback_handlers.py
+msgid "Не понял. Нажмите кнопку меню или напишите, например: 500 кафе обед"
+msgstr "I didn't get that. Press a menu button or type, for example: 500 cafe lunch"

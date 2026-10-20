@@ -1,5 +1,5 @@
 from aiogram import Router, F, types
-from aiogram.filters import CommandStart, StateFilter
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 
 from telegram import buttons
@@ -11,7 +11,7 @@ router = Router(name='common')
 WELCOME_STICKER = 'CAACAgIAAxkBAAIxgmR_WduWkzBmN4xogt4TSPMCiukoAAI2FgACcmugS6XaTV2HP2QpLwQ'
 
 
-@router.message(CommandStart(), StateFilter(None))
+@router.message(CommandStart())
 async def start_bot(message: types.Message, user_created: bool = False):
     # The user row itself is created by EnsureUserMiddleware.
     if user_created:

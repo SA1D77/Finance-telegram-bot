@@ -1132,3 +1132,11 @@ msgstr ""
 #: src/media/handlers.py
 msgid "🧾 Итог по чеку: {amount}"
 msgstr ""
+
+#: src/telegram/fallback_handlers.py
+msgid "Сейчас я жду выбор кнопкой выше. Чтобы выйти, нажмите «⬅️ Отмена» или любую кнопку меню."
+msgstr ""
+
+#: src/telegram/fallback_handlers.py
+msgid "Не понял. Нажмите кнопку меню или напишите, например: 500 кафе обед"
+msgstr ""

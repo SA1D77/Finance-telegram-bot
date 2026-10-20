@@ -5,6 +5,7 @@ from config import FEATURE_RECEIPTS, FEATURE_VOICE
 from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY, FEATURE_EXPORT, FEATURE_GOALS, FEATURE_QUICK_INPUT, FEATURE_RECURRING
 from i18n import setup_middleware
 from middleware.ensure_user import EnsureUserMiddleware
+from middleware.menu_reset import MenuResetMiddleware
 from middleware.owner import OwnerOnlyMiddleware
 from telegram import (
     category_handlers,
@@ -13,6 +14,7 @@ from telegram import (
     main_handlers,
     report_handlers,
     settings_handlers,
+    fallback_handlers,
 )
 
 
@@ -25,6 +27,7 @@ def create_dispatcher(storage: BaseStorage, owner_id: int, quick_input: bool = F
     dp.update.outer_middleware(OwnerOnlyMiddleware(owner_id=owner_id))
     dp.update.outer_middleware(EnsureUserMiddleware())
     setup_middleware(dp)
+    dp.message.outer_middleware(MenuResetMiddleware())  # after i18n: compares translated button texts
 
     # Same order the handler modules were imported in under aiogram 2,
     # so handler priority does not change.
@@ -61,5 +64,8 @@ def create_dispatcher(storage: BaseStorage, owner_id: int, quick_input: bool = F
         # Last: it only catches plain messages that start with an amount.
         from quick_input.handlers import router as quick_input_router
         dp.include_router(quick_input_router)
+
+    # Very last: answers anything nothing else handled.
+    dp.include_router(fallback_handlers.router)
 
     return dp

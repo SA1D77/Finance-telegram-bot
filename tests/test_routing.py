@@ -1,6 +1,8 @@
 from decimal import Decimal
 from types import SimpleNamespace
 
+import pytest
+
 import i18n
 import middleware.ensure_user
 from middleware import general_handlers
@@ -68,15 +70,54 @@ async def test_invalid_amount_keeps_state(harness):
     assert 'дробные числа пишутся через точку' in harness.session.texts()[-1]
 
 
-async def test_menu_buttons_ignored_inside_input_state(harness):
-    # Like aiogram 2: menu handlers only work without an active state,
-    # so the text goes to the amount input handler instead.
-    await harness.set_state(IncomeState.income_input)
+@pytest.mark.parametrize('stuck_in', [IncomeState.income_input, IncomeState.category_input, AddCategoryState.add_categories_input])
+async def test_menu_button_leaves_unfinished_dialog(harness, monkeypatch, stuck_in):
+    async def balance(user_id):
+        return Decimal('10.00')
+
+    monkeypatch.setattr(main_handlers, '_get_balance', balance)
+    await harness.set_state(stuck_in)
 
     await harness.feed(make_message('📊 Баланс'))
 
-    assert await harness.state() == IncomeState.income_input.state
-    assert 'ВАШ ТЕКУЩИЙ БАЛАНС:' not in harness.session.texts()
+    assert await harness.state() is None
+    assert harness.session.texts() == ['ВАШ ТЕКУЩИЙ БАЛАНС:', '10.00']
+
+
+async def test_command_leaves_unfinished_dialog(harness):
+    await harness.set_state(IncomeState.category_input)
+
+    await harness.feed(make_message('/start'))
+
+    assert await harness.state() is None
+    assert 'Привет!' in harness.session.texts()[-1]
+
+
+async def test_text_while_waiting_for_a_button_gets_a_hint(harness):
+    await harness.set_state(IncomeState.category_input)
+
+    await harness.feed(make_message('хм'))
+
+    assert await harness.state() == IncomeState.category_input.state
+    assert harness.session.texts()[-1].startswith('Сейчас я жду выбор кнопкой выше')
+
+
+async def test_unknown_button_is_answered(harness):
+    await harness.feed(make_callback('something_old'))
+
+    assert [type(m).__name__ for m in harness.session.requests] == ['AnswerCallbackQuery']
+
+
+async def test_menu_text_in_english(harness, monkeypatch):
+    async def saved_lang(user_id):
+        return 'en'
+
+    monkeypatch.setattr(i18n, '_get_user_lang', saved_lang)
+    await harness.set_state(IncomeState.category_input)
+
+    await harness.feed(make_message('➖ Expenditure'))
+
+    assert await harness.state() == ExpenditureState.expenditure_input.state
 
 
 async def test_balance_is_shown_exactly(harness, monkeypatch):
