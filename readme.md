@@ -22,6 +22,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 🎯 **Budgets:** `/budget` (or the 🎯 button) shows this month's progress for an overall limit and per-category limits, what is left and how much you can spend per day. After every expense or edit the bot queues a Celery check; at 80% and 100% the worker sends a notification, at most once per threshold per month (a unique key in `budget_alerts` guarantees it). `FEATURE_BUDGETS=0` turns it off. Months follow `TIMEZONE`.
 
+📈 **Analytics:** `/stats` (or the 📈 button) shows a month at a time: income, expenses, savings rate, average spending per day, a forecast for the month end and how much you can spend per day (by the overall budget if set, otherwise from income left); a per-category comparison with the previous month (amount and %), top categories and the largest expenses; ◀️ ▶️ switch months and a button sends a 12-month income/expense chart. `/report` now offers today / week / month / year (calendar periods in `TIMEZONE`) or a custom range like `01.09.2026-30.09.2026`; a report spanning several months also gets a monthly chart. `FEATURE_ANALYTICS=0` hides `/stats`.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.
