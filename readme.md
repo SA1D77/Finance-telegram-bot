@@ -53,7 +53,7 @@ DB_URL=postgresql+asyncpg://postgres:postgres@db:5432/postgres # Url of the main
 DEBUG=0 # If 0, then DEBUG mode is disabled
 
 REDIS_HOST=redis # The host of your redis database (locally localhost, and redis in docker)
-REDIS_PORT=6379 # Redis port
+REDIS_PORT=6379 # Redis port (db 3 is the cache, db 4 keeps FSM dialog states)
 
 SMTP_HOST=smtp.gmail.com # The host of your smtp client
 SMTP_PORT=465  # The port of your smtp client
@@ -84,7 +84,7 @@ Instead `path_to_project` use the path to the project.
 At the root of the project in 1 terminal:
 
 ```sh
-python3.10 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 
 python -m pip install -r requirements.txt
@@ -110,9 +110,19 @@ At the root of the project:
 docker compose up
 ```
 
+### Tests
+
+```sh
+python -m pip install -r requirements-dev.txt
+flake8 ./
+pytest
+```
+
+Tests feed updates through the real dispatcher with a mocked Telegram session, so they need no database, Redis or network.
+
 ## Tech used
 
-- [Aiogram](https://docs.aiogram.dev/en/latest/) ⚡
+- [Aiogram 3](https://docs.aiogram.dev/en/latest/) ⚡
 - [Redis](https://redis.io/)  🚀
 - [PostgreSQL](https://www.postgresql.org/)  🐘
 - [SQLAlchemy](https://www.sqlalchemy.org/)  🧪
