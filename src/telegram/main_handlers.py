@@ -14,7 +14,8 @@ from telegram.states import (
     ExpenditureState,
 )
 from .messages import FLOAT_NUMBER_ERROR
-from .validation import parse_amount, parse_category_id
+from .validation import normalize_expression, parse_amount, parse_category_id
+from quick_input.calc import is_expression
 from middleware.accounting import (
     _get_balance,
     _add_income,
@@ -74,7 +75,11 @@ async def _amount_input(message: types.Message, state: FSMContext, next_state) -
 
     await state.set_state(next_state)
     all_categories = await _show_all_categories(message.from_user.id)
-    await message.answer(text=_('Введите категорию'), reply_markup=await buttons.categories_buttons(categories=all_categories))
+    text = _('Введите категорию')
+    expression = normalize_expression(message.text)
+    if is_expression(expression):
+        text = f'🧮 {escape(expression)} = <b>{total}</b>\n\n' + text
+    await message.answer(text=text, reply_markup=await buttons.categories_buttons(categories=all_categories))
     # FSM data is stored as JSON in Redis, so the Decimal travels as a string.
     await state.update_data(total=str(total))
 
