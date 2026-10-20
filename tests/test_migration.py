@@ -21,7 +21,17 @@ pytestmark = pytest.mark.skipif(not TEST_PG_URL, reason='TEST_PG_URL is not set'
 ALEMBIC_DIR = Path(__file__).resolve().parent.parent / 'alembic'
 LEGACY_HEAD = '8ca044247220'
 NEW_HEAD = 'b7e2c4d91a05'  # telegram id / numeric / categories
-HEAD = 'c41f8a2e6d17'
+
+
+def _head() -> str:
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    config = Config(str(ALEMBIC_DIR / 'alembic.ini'))
+    config.set_main_option('script_location', str(ALEMBIC_DIR / 'migrations'))  # relative in the ini
+    return ScriptDirectory.from_config(config).get_current_head()
+
+
+HEAD = _head()  # latest revision, whatever stage added it
 OWNER_ID = 777000111
 
 
