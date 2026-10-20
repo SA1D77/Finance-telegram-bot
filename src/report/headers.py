@@ -9,3 +9,5 @@ OPERATION = {'ru': 'Операция', 'en': 'Operation', 'be': 'Аперацы�
 INCOME = {'ru': 'Доход', 'en': 'Income', 'be': 'Даход'}
 
 EXPENDITURE = {'ru': 'Расход', 'en': 'Expenditure', 'be': 'Расход'}
+
+COMMENT = {'ru': 'Комментарий', 'en': 'Comment', 'be': 'Каментарый'}

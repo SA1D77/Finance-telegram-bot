@@ -128,3 +128,15 @@ async def test_accounts_are_per_user_and_last_is_limited(db):
     assert len(month) == 12
     assert {row.categories for row in month} == {'еда'}
     assert Decimal('999') not in {row.quantity for row in last + month}
+
+
+async def test_comment_is_stored_and_returned(db):
+    await user.ensure_user(OWNER, None)
+    await accounting._add_new_category('кафе', OWNER)
+    category = (await accounting._show_all_categories(OWNER))[0]
+
+    await accounting._add_operation(OWNER, category.id, Decimal('500.00'), accounting.OperationType.expenditure, comment='обед')
+    await accounting._add_expenditure(OWNER, category.id, Decimal('1.00'))
+
+    rows = await accounting._get_accounts(OWNER, '30')
+    assert sorted((row.quantity, row.comment) for row in rows) == [(Decimal('1.00'), None), (Decimal('500.00'), 'обед')]

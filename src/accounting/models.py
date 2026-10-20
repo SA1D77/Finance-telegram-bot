@@ -12,6 +12,7 @@ from user.models import Base, User
 # Amounts up to 999 999 999 999.99, stored exactly (never float).
 MONEY = Numeric(14, 2)
 CATEGORY_NAME_MAX_LENGTH = 64
+COMMENT_MAX_LENGTH = 255
 
 
 class OperationType(enum.Enum):
@@ -38,3 +39,4 @@ class Accounting(Base):
     quantity = Column(MONEY, nullable=False)
     category_id = Column(Integer, ForeignKey(Categories.id), nullable=False)
     operation_type = Column(Enum(OperationType), nullable=False)
+    comment = Column(String(COMMENT_MAX_LENGTH), nullable=True)

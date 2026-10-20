@@ -3,7 +3,7 @@ from decimal import Decimal
 import xlsxwriter
 
 from accounting.models import OperationType
-from .headers import CATEGORY, DATE, QUANTITY, OPERATION, INCOME, EXPENDITURE
+from .headers import CATEGORY, COMMENT, DATE, QUANTITY, OPERATION, INCOME, EXPENDITURE
 
 
 def create_report(path: str, accounts, lang):
@@ -18,13 +18,14 @@ def create_report(path: str, accounts, lang):
         'align': 'center',
         'valign': 'vcenter'
     })
-    worksheet.set_column(1, 4, 25)
+    worksheet.set_column(1, 5, 25)
 
     worksheet.write(0, 0, '№')
     worksheet.write(0, 1, CATEGORY[lang], cell_format)
     worksheet.write(0, 2, DATE[lang], cell_format)
     worksheet.write(0, 3, QUANTITY[lang], cell_format)
     worksheet.write(0, 4, OPERATION[lang], cell_format)
+    worksheet.write(0, 5, COMMENT[lang], cell_format)
 
     for index, entry in enumerate(data):
         worksheet.write(index + 1, 0, str(index))
@@ -32,6 +33,7 @@ def create_report(path: str, accounts, lang):
         worksheet.write(index + 1, 2, entry['date'])
         worksheet.write(index + 1, 3, entry['quantity'], cell_format)
         worksheet.write(index + 1, 4, entry['operation'], cell_format)
+        worksheet.write(index + 1, 5, entry['comment'])
 
     workbook.close()
 
@@ -44,7 +46,8 @@ def prepare_data(accounts, lang):
             'category': i['category'],
             'date': i['date'],
             'quantity': float(Decimal(i['quantity'])),  # numeric cell in Excel
-            'operation': INCOME[lang] if i['operation_type'] == OperationType.income.value else EXPENDITURE[lang]
+            'operation': INCOME[lang] if i['operation_type'] == OperationType.income.value else EXPENDITURE[lang],
+            'comment': i.get('comment', ''),
         }
 
         data_for_table.append(item)

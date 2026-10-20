@@ -20,7 +20,8 @@ pytestmark = pytest.mark.skipif(not TEST_PG_URL, reason='TEST_PG_URL is not set'
 
 ALEMBIC_DIR = Path(__file__).resolve().parent.parent / 'alembic'
 LEGACY_HEAD = '8ca044247220'
-NEW_HEAD = 'b7e2c4d91a05'
+NEW_HEAD = 'b7e2c4d91a05'  # telegram id / numeric / categories
+HEAD = 'c41f8a2e6d17'
 OWNER_ID = 777000111
 
 
@@ -80,7 +81,7 @@ def test_upgrade_moves_data_and_downgrade_restores_it(database):
     seed_legacy(dsn)
     env = dict(env, OWNER_USERNAME='owner')
 
-    alembic(env, 'upgrade', 'head')
+    alembic(env, 'upgrade', NEW_HEAD)
 
     assert query(dsn, 'SELECT version_num FROM alembic_version') == [(NEW_HEAD,)]
     users = dict(query(dsn, 'SELECT username, id FROM "user"'))
@@ -118,7 +119,7 @@ def test_upgrade_moves_data_and_downgrade_restores_it(database):
         ('owner', 'еда', 250.1), ('owner', 'зарплата', 2000.0), ('owner', 'старое', 0.3), ('someone', 'еда', 10.0)]
 
     # And forward again: the round trip is repeatable.
-    alembic(env, 'upgrade', 'head')
+    alembic(env, 'upgrade', NEW_HEAD)
     assert query(dsn, 'SELECT count(*) FROM accounting') == [(4,)]
 
 
@@ -127,7 +128,7 @@ def test_fresh_database_upgrades_to_head(database):
 
     alembic(env, 'upgrade', 'head')
 
-    assert query(dsn, 'SELECT version_num FROM alembic_version') == [(NEW_HEAD,)]
+    assert query(dsn, 'SELECT version_num FROM alembic_version') == [(HEAD,)]
     assert query(dsn, 'SELECT count(*) FROM "user"') == [(0,)]
 
 
@@ -136,7 +137,7 @@ def test_several_users_without_owner_username_aborts_without_changes(database):
     alembic(env, 'upgrade', LEGACY_HEAD)
     seed_legacy(dsn)
 
-    result = alembic(env, 'upgrade', 'head', check=False)
+    result = alembic(env, 'upgrade', NEW_HEAD, check=False)
 
     assert result.returncode != 0
     assert 'OWNER_USERNAME' in result.stderr
@@ -149,6 +150,22 @@ def test_owner_username_picks_the_owner(database):
     alembic(env, 'upgrade', LEGACY_HEAD)
     seed_legacy(dsn)
 
-    alembic(dict(env, OWNER_USERNAME='@Someone'), 'upgrade', 'head')
+    alembic(dict(env, OWNER_USERNAME='@Someone'), 'upgrade', NEW_HEAD)
 
     assert dict(query(dsn, 'SELECT username, id FROM "user"')) == {'someone': OWNER_ID, 'owner': -1}
+
+
+def test_comment_column_round_trip(database):
+    dsn, env = database
+    alembic(dict(env, OWNER_USERNAME='owner'), 'upgrade', LEGACY_HEAD)
+    seed_legacy(dsn)
+    alembic(dict(env, OWNER_USERNAME='owner'), 'upgrade', 'head')
+    query(dsn, "UPDATE accounting SET comment = 'обед' WHERE quantity = 250.10")
+
+    assert query(dsn, 'SELECT count(*) FROM accounting WHERE comment IS NOT NULL') == [(1,)]
+
+    alembic(env, 'downgrade', NEW_HEAD)
+
+    assert query(dsn, 'SELECT count(*) FROM accounting') == [(4,)]
+    columns = [row[0] for row in query(dsn, "SELECT column_name FROM information_schema.columns WHERE table_name = 'accounting'")]
+    assert 'comment' not in columns

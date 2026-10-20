@@ -63,12 +63,14 @@ async def _get_balance(user_id: int) -> Decimal:
     return Decimal(await _execute_scalar(statemant))
 
 
-async def _add_operation(user_id: int, category_id: int, quantity: Decimal, operation_type: OperationType):
+async def _add_operation(user_id: int, category_id: int, quantity: Decimal, operation_type: OperationType,
+                         comment: Optional[str] = None):
     statemant = insert(Accounting).values(
         user_id=user_id,
         quantity=quantity,
         category_id=category_id,
         operation_type=operation_type,
+        comment=comment,
     )
     await _execute_insert_update_delete_command(statemant)
 
@@ -82,8 +84,8 @@ async def _add_expenditure(user_id: int, category_id: int, quantity: Decimal):
 
 
 async def _get_accounts(user_id: int, time: str):
-    """Rows with created_at, quantity, operation_type and the category name as `categories`."""
-    statement = (select(Accounting.created_at, Accounting.quantity, Accounting.operation_type,
+    """Rows with created_at, quantity, operation_type, comment and the category name as `categories`."""
+    statement = (select(Accounting.created_at, Accounting.quantity, Accounting.operation_type, Accounting.comment,
                         Categories.name.label('categories'))
                  .join(Categories, Categories.id == Accounting.category_id)
                  .where(Accounting.user_id == user_id))
