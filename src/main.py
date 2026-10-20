@@ -1,40 +1,35 @@
+import asyncio
 import logging
-from pathlib import Path
 
 from aiogram import Bot
-from aiogram.dispatcher import Dispatcher
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.contrib.middlewares.logging import LoggingMiddleware
-from aiogram.contrib.middlewares.i18n import I18nMiddleware
-from aiogram.utils import executor
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.redis import RedisStorage
+from redis.asyncio import Redis
 
-from config import TELEGRAM, DEBUG
-from i18n import setup_middleware
+from config import TELEGRAM, DEBUG, REDIS_HOST, REDIS_PORT
+from dispatcher import create_dispatcher
 
-
-if DEBUG:
-    logging.basicConfig(level=logging.DEBUG)
-else:
-    logging.basicConfig(level=logging.INFO)
+# Redis db for FSM states, separate from the cache (db 3) and Celery (db 0).
+FSM_REDIS_DB = 4
 
 
-memory = MemoryStorage()
-bot = Bot(token=TELEGRAM, parse_mode='html')
-dp = Dispatcher(bot, storage=memory)
+async def main() -> None:
+    if DEBUG:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
+    bot = Bot(token=TELEGRAM, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    storage = RedisStorage(redis=Redis(host=REDIS_HOST, port=REDIS_PORT, db=FSM_REDIS_DB))
+    dp = create_dispatcher(storage=storage)
 
-dp.middleware.setup(LoggingMiddleware())
-i18n = setup_middleware(dp=dp)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await storage.close()
+        await bot.session.close()
 
-_ = i18n.gettext
-
-
-from telegram.category_handlers import *
-from telegram.common_handlers import *
-from telegram.language_handlers import *
-from telegram.main_handlers import *
-from telegram.report_handlers import *
-from telegram.settings_handlers import *
 
 if __name__ == '__main__':
-    executor.start_polling(dp)
+    asyncio.run(main())

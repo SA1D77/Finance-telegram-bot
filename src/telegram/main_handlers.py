@@ -1,8 +1,9 @@
-from aiogram import types
-from aiogram.dispatcher import FSMContext
+from aiogram import Router, F, types
+from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
 
 from telegram import buttons
-from main import dp, _
+from i18n import _, __
 from telegram.states import (
     IncomeState,
     ExpenditureState,
@@ -15,47 +16,49 @@ from middleware.accounting import (
 )
 from middleware.accounting import _show_all_categories
 
+router = Router(name='main')
 
-@dp.message_handler(lambda message: message.text == _('➕ Доход'))
-async def income_handler(message: types.Message):
-    await IncomeState.income_input.set()
+
+@router.message(F.text == __('➕ Доход'), StateFilter(None))
+async def income_handler(message: types.Message, state: FSMContext):
+    await state.set_state(IncomeState.income_input)
 
     await message.answer(text=_('ДОХОД:'), reply_markup=types.ReplyKeyboardRemove())
     await message.answer(text=_('Введите ваш доход'))
 
 
-@dp.message_handler(lambda message: message.text == _('➖ Расход'))
-async def expenditure_handler(message: types.Message):
-    await ExpenditureState.expenditure_input.set()
+@router.message(F.text == __('➖ Расход'), StateFilter(None))
+async def expenditure_handler(message: types.Message, state: FSMContext):
+    await state.set_state(ExpenditureState.expenditure_input)
 
     await message.answer(text=_('РАСХОД:'), reply_markup=types.ReplyKeyboardRemove())
     await message.answer(text=_('Введите ваш расход'))
 
 
-@dp.message_handler(lambda message: message.text == _('📊 Баланс'))
+@router.message(F.text == __('📊 Баланс'), StateFilter(None))
 async def balance_show_handler(message: types.Message):
     await message.answer(text=_('ВАШ ТЕКУЩИЙ БАЛАНС:'))
 
     user_balance = await _get_balance(message.from_user.username)
 
-    await message.answer(text=round(user_balance, 2), reply_markup=await buttons.get_button_manage_money())
+    await message.answer(text=str(round(user_balance, 2)), reply_markup=await buttons.get_button_manage_money())
 
 
-@dp.message_handler(state=IncomeState.income_input)
+@router.message(IncomeState.income_input)
 async def income_input_handler(message: types.Message, state: FSMContext):
     try:
         total = float(message.text)
-    except ValueError:
+    except (TypeError, ValueError):
         await message.answer(text=_(FLOAT_NUMBER_ERROR), reply_markup=await buttons.get_button_manage_money())
     else:
-        await IncomeState.category_input.set()
+        await state.set_state(IncomeState.category_input)
         all_categories = await _show_all_categories(message.from_user.username)
         await message.answer(text=_('Введите категорию'), reply_markup=await buttons.categories_buttons(categories=all_categories))
         await state.update_data(total=total)
         await state.update_data(username=message.from_user.username)
 
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('category'), state=IncomeState.category_input)
+@router.callback_query(F.data.startswith('category'), IncomeState.category_input)
 async def income_category_input_handler(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     total = data.get('total')
@@ -70,25 +73,25 @@ async def income_category_input_handler(callback_query: types.CallbackQuery, sta
     await callback_query.message.edit_text(text=_('Новая запись:'))
     await callback_query.message.answer(text=_('ДОХОД') + f' <b>{total} {text}</b>', reply_markup=await buttons.get_button_manage_money())
 
-    await state.reset_state()
+    await state.clear()
     await callback_query.answer()
 
 
-@dp.message_handler(state=ExpenditureState.expenditure_input)
+@router.message(ExpenditureState.expenditure_input)
 async def expenditure_input_handler(message: types.Message, state: FSMContext):
     try:
         total = float(message.text)
-    except ValueError:
+    except (TypeError, ValueError):
         await message.answer(text=_(FLOAT_NUMBER_ERROR), reply_markup=await buttons.get_button_manage_money())
     else:
-        await ExpenditureState.category_input.set()
+        await state.set_state(ExpenditureState.category_input)
         all_categories = await _show_all_categories(message.from_user.username)
         await message.answer(text=_('Введите категорию'), reply_markup=await buttons.categories_buttons(categories=all_categories))
         await state.update_data(total=total)
         await state.update_data(username=message.from_user.username)
 
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('category'), state=ExpenditureState.category_input)
+@router.callback_query(F.data.startswith('category'), ExpenditureState.category_input)
 async def expenditure_category_input_handler(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     total = data.get('total')
@@ -103,5 +106,5 @@ async def expenditure_category_input_handler(callback_query: types.CallbackQuery
     await callback_query.message.edit_text(text=_('Новая запись:'))
     await callback_query.message.answer(text=_('РАСХОД') + f' <b>{total} {text}</b>', reply_markup=await buttons.get_button_manage_money())
 
-    await state.reset_state()
+    await state.clear()
     await callback_query.answer()

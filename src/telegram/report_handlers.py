@@ -1,10 +1,12 @@
-from aiogram import types
-from aiogram.dispatcher import FSMContext
+from aiogram import Router, F, types
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.types import FSInputFile
 
 import os
 
 from telegram import buttons
-from main import dp, bot, _
+from i18n import _, __
 from telegram.states import (
     ReportState,
     EmailState
@@ -16,15 +18,19 @@ from report.table import create_report
 from report.diagram import create_diagram
 from report.email_send import email_report
 
+router = Router(name='report')
 
-@dp.message_handler(commands=['report'])
+REPORT_DIR = f'{os.path.dirname(__file__)}/../report'
+
+
+@router.message(Command('report'), StateFilter(None))
 async def run_report(message: types.Message, state: FSMContext):
-    await ReportState.time_interval.set()
+    await state.set_state(ReportState.time_interval)
     await message.answer(text=_('Выберите промежуток времени'), reply_markup=await buttons.time_interval_buttons())
     await state.update_data(username=message.from_user.username)
 
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('time'), state=ReportState.time_interval)
+@router.callback_query(F.data.startswith('time'), ReportState.time_interval)
 async def report(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     username = data.get('username')
@@ -33,50 +39,48 @@ async def report(callback_query: types.CallbackQuery, state: FSMContext):
     lang = await _get_user_lang(username=username)
     create_report.delay(username=username, accounts=accounts, lang=lang)
     create_diagram.delay(username=username, accounts=accounts, lang=lang)
-    await ReportState.send_place.set()
+    await state.set_state(ReportState.send_place)
     await callback_query.message.edit_text(text=_('Отчет сформирован!'))
     await callback_query.message.answer(text=_('Выберите место для отправки отчета'), reply_markup=await buttons.get_report_buttons())
 
 
-@dp.message_handler(state=ReportState.send_place)
+@router.message(ReportState.send_place)
 async def report_send_place(message: types.Message, state: FSMContext):
     user_input = message.text
+    username = message.from_user.username
 
     if user_input == _('📧 Почта'):
-        response = await _get_users_email(username=message.from_user.username)
+        response = await _get_users_email(username=username)
         if response:
-            await EmailState.reuse_email.set()
+            await state.set_state(EmailState.reuse_email)
             await message.answer(text=_('У вас есть сохранненая почта, использовать её?'), reply_markup=await buttons.get_email_remember_buttons())
         else:
-            await ReportState.email.set()
+            await state.set_state(ReportState.email)
             await message.answer(text=_('Введите вашу почту'), reply_markup=await buttons.get_button_cancel())
     elif user_input == _('📌 Чат'):
-        document = open(f'{os.path.dirname(__file__)}/../report/reports/{message.from_user.username}_report.xlsx', 'rb')
-        await bot.send_document(chat_id=message.chat.id, document=document, reply_markup=await buttons.get_button_manage_money())
-        await bot.send_photo(chat_id=message.chat.id,
-                             photo=types.InputFile(f'{os.path.dirname(__file__)}/../report/diagrams/{message.from_user.username}_general_diagram.png'))
+        await message.answer_document(document=FSInputFile(f'{REPORT_DIR}/reports/{username}_report.xlsx'),
+                                      reply_markup=await buttons.get_button_manage_money())
+        await message.answer_photo(photo=FSInputFile(f'{REPORT_DIR}/diagrams/{username}_general_diagram.png'))
         await message.answer(text=_('РАСХОД'), reply_markup=await buttons.get_button_manage_money())
-        await bot.send_photo(chat_id=message.chat.id,
-                             photo=types.InputFile(f'{os.path.dirname(__file__)}/../report/diagrams/{message.from_user.username}_expenditure_diagram.png'))
+        await message.answer_photo(photo=FSInputFile(f'{REPORT_DIR}/diagrams/{username}_expenditure_diagram.png'))
         await message.answer(text=_('ДОХОД'), reply_markup=await buttons.get_button_manage_money())
-        await bot.send_photo(chat_id=message.chat.id,
-                             photo=types.InputFile(f'{os.path.dirname(__file__)}/../report/diagrams/{message.from_user.username}_income_diagram.png'))
-        await state.reset_state()
+        await message.answer_photo(photo=FSInputFile(f'{REPORT_DIR}/diagrams/{username}_income_diagram.png'))
+        await state.clear()
     else:
         await message.answer(text=_('Отменено'), reply_markup=await buttons.get_button_manage_money())
-        await state.reset_state()
+        await state.clear()
 
 
-@dp.message_handler(state=ReportState.email)
+@router.message(ReportState.email)
 async def send_report(message: types.Message, state: FSMContext):
     user_email = message.text
-    await ReportState.remember_email.set()
+    await state.set_state(ReportState.remember_email)
     email_report.delay(username=message.from_user.username, user_email=user_email)
     await message.answer(text=_('Сохранить почту?'), reply_markup=await buttons.get_email_remember_buttons())
     await state.update_data(email=user_email)
 
 
-@dp.message_handler(state=ReportState.remember_email)
+@router.message(ReportState.remember_email)
 async def remember_email(message: types.Message, state: FSMContext):
     user_input = message.text
     data = await state.get_data()
@@ -90,24 +94,24 @@ async def remember_email(message: types.Message, state: FSMContext):
 
         await message.answer(text=_('Проверьте свою почту'), reply_markup=await buttons.get_button_manage_money())
 
-    await state.reset_state()
+    await state.clear()
 
 
-@dp.message_handler(state=EmailState.reuse_email)
+@router.message(EmailState.reuse_email)
 async def reuse_email(message: types.Message, state: FSMContext):
     user_input = message.text
 
     if user_input == _('⭕️ Да'):
-        await state.reset_state()
+        await state.clear()
         email = await _get_users_email(username=message.from_user.username)
         email_report.delay(username=message.from_user.username, user_email=email.decode('utf-8'))
         await message.answer(text=_('Проверьте свою почту'), reply_markup=await buttons.get_button_manage_money())
     else:
-        await ReportState.email.set()
+        await state.set_state(ReportState.email)
         await message.answer(text=_('Введите вашу почту'), reply_markup=await buttons.get_button_cancel())
 
 
-@dp.message_handler(lambda message: message.text == _('🕒 Последние 10 операций'))
+@router.message(F.text == __('🕒 Последние 10 операций'), StateFilter(None))
 async def last_ten_operations(message: types.Message):
     accounts = await _get_accounts(username=message.from_user.username, time='last')
     msg = str()
