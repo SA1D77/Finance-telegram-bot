@@ -503,3 +503,22 @@ async def test_backup_and_restore_round_trip(db, tmp_path):
     finally:
         admin.cursor().execute(f'DROP DATABASE IF EXISTS {target} WITH (FORCE)')
         admin.close()
+
+
+async def test_original_currency_is_stored_and_cleared(db):
+    from history import queries
+    await user.ensure_user(OWNER, None)
+    await accounting._add_new_category('отель', OWNER)
+    category = (await accounting._show_all_categories(OWNER))[0].id
+    op_id = await accounting._add_operation(OWNER, category, Decimal('632506.00'), accounting.OperationType.expenditure,
+                                            original_amount=Decimal('50.00'), original_currency='USD', rate=Decimal('12650.12'))
+
+    row = await queries.get_operation(OWNER, op_id)
+    assert (row.quantity, row.original_amount, row.original_currency) == (Decimal('632506.00'), Decimal('50.00'), 'USD')
+    assert await accounting._get_balance(OWNER) == Decimal('-632506.00')  # totals are in the base currency
+    report_row = (await accounting._get_accounts_between(OWNER, None, None))[0]
+    assert report_row.original_currency == 'USD'
+
+    await queries.update_operation(OWNER, op_id, quantity=Decimal('1.00'), original_amount=None, original_currency=None, rate=None)
+    row = await queries.get_operation(OWNER, op_id)
+    assert (row.quantity, row.original_currency) == (Decimal('1.00'), None)

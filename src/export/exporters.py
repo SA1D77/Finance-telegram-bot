@@ -10,9 +10,9 @@ from accounting.models import OperationType
 from timeutils import to_local
 
 HEADERS = {
-    'ru': ['Дата', 'Тип', 'Категория', 'Сумма', 'Комментарий'],
-    'en': ['Date', 'Type', 'Category', 'Amount', 'Comment'],
-    'be': ['Дата', 'Тып', 'Катэгорыя', 'Сума', 'Каментарый'],
+    'ru': ['Дата', 'Тип', 'Категория', 'Сумма', 'Комментарий', 'В валюте'],
+    'en': ['Date', 'Type', 'Category', 'Amount', 'Comment', 'Original'],
+    'be': ['Дата', 'Тып', 'Катэгорыя', 'Сума', 'Каментарый', 'У валюце'],
 }
 TYPES = {
     'ru': {OperationType.income: 'Доход', OperationType.expenditure: 'Расход'},
@@ -33,6 +33,8 @@ def rows_for_export(accounts: Iterable[Any], lang: str) -> List[Dict[str, Any]]:
         'category': account.categories,
         'amount': Decimal(account.quantity),
         'comment': account.comment or '',
+        'original': (f'{account.original_amount} {account.original_currency}'
+                     if getattr(account, 'original_currency', None) else ''),
     } for account in accounts]
 
 
@@ -42,7 +44,7 @@ def to_csv(rows: List[Dict[str, Any]], lang: str) -> bytes:
     writer = csv.writer(buffer, delimiter=';', lineterminator='\r\n')
     writer.writerow(HEADERS[_lang(lang)])
     for row in rows:
-        writer.writerow([row['date'], row['type'], row['category'], str(row['amount']), row['comment']])
+        writer.writerow([row['date'], row['type'], row['category'], str(row['amount']), row['comment'], row['original']])
     return buffer.getvalue().encode('utf-8-sig')
 
 
@@ -60,11 +62,13 @@ def to_xlsx(rows: List[Dict[str, Any]], lang: str) -> bytes:
         sheet.write(index, 2, row['category'])
         sheet.write_number(index, 3, float(row['amount']), money)  # a number cell, so Excel can sum it
         sheet.write(index, 4, row['comment'])
+        sheet.write(index, 5, row['original'])
     sheet.set_column(0, 0, 17)
     sheet.set_column(1, 2, 16)
     sheet.set_column(3, 3, 14)
     sheet.set_column(4, 4, 40)
     sheet.freeze_panes(1, 0)
-    sheet.autofilter(0, 0, max(len(rows), 1), 4)
+    sheet.set_column(5, 5, 16)
+    sheet.autofilter(0, 0, max(len(rows), 1), 5)
     workbook.close()
     return buffer.getvalue()

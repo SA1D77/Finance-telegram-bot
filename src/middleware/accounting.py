@@ -66,7 +66,9 @@ async def _get_balance(user_id: int) -> Decimal:
 
 
 async def _add_operation(user_id: int, category_id: int, quantity: Decimal, operation_type: OperationType,
-                         comment: Optional[str] = None, created_at: Optional[datetime] = None) -> uuid.UUID:
+                         comment: Optional[str] = None, created_at: Optional[datetime] = None,
+                         original_amount: Optional[Decimal] = None, original_currency: Optional[str] = None,
+                         rate: Optional[Decimal] = None) -> uuid.UUID:
     """Returns the new operation id (used by the undo button). created_at is naive UTC, default now."""
     statemant = insert(Accounting).values(
         user_id=user_id,
@@ -75,6 +77,9 @@ async def _add_operation(user_id: int, category_id: int, quantity: Decimal, oper
         operation_type=operation_type,
         comment=comment,
         created_at=created_at or utc_now(),
+        original_amount=original_amount,
+        original_currency=original_currency,
+        rate=rate,
     ).returning(Accounting.id)
     return await _execute_scalar(statemant)
 
@@ -90,7 +95,7 @@ async def _add_expenditure(user_id: int, category_id: int, quantity: Decimal) ->
 async def _get_accounts_between(user_id: int, since: Optional[datetime], until: Optional[datetime]):
     """Report rows (see _get_accounts) in [since, until); None means open-ended. Oldest first."""
     statement = (select(Accounting.created_at, Accounting.quantity, Accounting.operation_type, Accounting.comment,
-                        Categories.name.label('categories'))
+                        Accounting.original_amount, Accounting.original_currency, Categories.name.label('categories'))
                  .join(Categories, Categories.id == Accounting.category_id)
                  .where(Accounting.user_id == user_id))
     if since is not None:
@@ -103,7 +108,7 @@ async def _get_accounts_between(user_id: int, since: Optional[datetime], until: 
 async def _get_accounts(user_id: int, time: str):
     """Rows with created_at, quantity, operation_type, comment and the category name as `categories`."""
     statement = (select(Accounting.created_at, Accounting.quantity, Accounting.operation_type, Accounting.comment,
-                        Categories.name.label('categories'))
+                        Accounting.original_amount, Accounting.original_currency, Categories.name.label('categories'))
                  .join(Categories, Categories.id == Accounting.category_id)
                  .where(Accounting.user_id == user_id))
     if time == 'last':

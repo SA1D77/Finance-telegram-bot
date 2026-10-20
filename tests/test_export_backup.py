@@ -27,13 +27,16 @@ def accounts():
                         quantity=D('100000.00'), comment=None),
         SimpleNamespace(created_at=datetime(2026, 10, 2, 19, 30), operation_type=OperationType.expenditure, categories='кафе',
                         quantity=D('1250.50'), comment='ужин; "с друзьями"'),
+        SimpleNamespace(created_at=datetime(2026, 10, 3, 7, 0), operation_type=OperationType.expenditure, categories='отель',
+                        quantity=D('632506.00'), comment=None, original_amount=D('50.00'), original_currency='USD'),
     ]
 
 
 def test_rows_use_local_time_and_language():
     rows = rows_for_export(accounts(), 'en')
 
-    assert rows[0] == {'date': '2026-10-01 12:00', 'type': 'Income', 'category': 'зарплата', 'amount': D('100000.00'), 'comment': ''}
+    assert rows[0] == {'date': '2026-10-01 12:00', 'type': 'Income', 'category': 'зарплата', 'amount': D('100000.00'),
+                       'comment': '', 'original': ''}
     assert rows[1]['date'] == '2026-10-03 00:30'  # 19:30 UTC is past midnight in Tashkent
     assert rows_for_export(accounts(), 'xx')[0]['type'] == 'Доход'
 
@@ -43,8 +46,8 @@ def test_csv_is_excel_friendly_and_escaped():
 
     assert content.startswith('﻿'.encode('utf-8'))
     parsed = list(csv.reader(io.StringIO(content.decode('utf-8-sig')), delimiter=';'))
-    assert parsed[0] == ['Дата', 'Тип', 'Категория', 'Сумма', 'Комментарий']
-    assert parsed[2] == ['2026-10-03 00:30', 'Расход', 'кафе', '1250.50', 'ужин; "с друзьями"']
+    assert parsed[0] == ['Дата', 'Тип', 'Категория', 'Сумма', 'Комментарий', 'В валюте']
+    assert parsed[2] == ['2026-10-03 00:30', 'Расход', 'кафе', '1250.50', 'ужин; "с друзьями"', '']
 
 
 def test_xlsx_is_a_valid_workbook():
@@ -89,7 +92,7 @@ async def test_export_flow(harness, export_db, fmt, suffix):
 
     document = harness.session.requests[-2]
     assert type(document).__name__ == 'SendDocument'
-    assert document.document.filename.endswith(suffix) and document.caption == 'Операций: 2'
+    assert document.document.filename.endswith(suffix) and document.caption == 'Операций: 3'
     assert export_db == [(USER_ID, None, None)]
 
 
@@ -203,3 +206,9 @@ async def test_backup_task_reports_failure(tmp_path, monkeypatch):
 
     assert await backup_tasks.run_backup(chat_id=USER_ID, bot=FakeBot()) is None
     assert sent and sent[0].startswith('⚠️ Резервная копия не создана')
+
+
+def test_export_shows_original_currency():
+    rows = rows_for_export(accounts(), 'ru')
+
+    assert rows[2]['original'] == '50.00 USD' and rows[2]['amount'] == D('632506.00')

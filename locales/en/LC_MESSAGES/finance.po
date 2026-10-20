@@ -1106,3 +1106,7 @@ msgstr "Making a backup, the file will arrive in a minute."
 #: src/export/handlers.py
 msgid "Не удалось поставить задачу: проверьте, что контейнер celery запущен."
 msgstr "Could not queue the task: check that the celery container is running."
+
+#: src/quick_input/handlers.py
+msgid "Не удалось получить курс {code}. Попробуйте позже или укажите сумму в {base}."
+msgstr "Could not get the {code} rate. Try later or enter the amount in {base}."

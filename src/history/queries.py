@@ -12,12 +12,13 @@ from middleware.service import (
     _execute_select_rows,
 )
 
-EDITABLE_FIELDS = {'quantity', 'category_id', 'comment', 'created_at'}
+EDITABLE_FIELDS = {'quantity', 'category_id', 'comment', 'created_at', 'original_amount', 'original_currency', 'rate'}
 
 
 def _columns():
     return (Accounting.id, Accounting.created_at, Accounting.quantity, Accounting.operation_type,
-            Accounting.comment, Accounting.category_id, Categories.name.label('category'))
+            Accounting.comment, Accounting.category_id, Accounting.original_amount, Accounting.original_currency,
+            Categories.name.label('category'))
 
 
 def _filtered(statement, user_id: int, category_id: Optional[int], since: Optional[datetime], until: Optional[datetime]):

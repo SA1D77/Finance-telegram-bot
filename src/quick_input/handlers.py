@@ -14,12 +14,16 @@ from aiogram.fsm.context import FSMContext
 
 from accounting.models import OperationType
 from budgets.notify import schedule_budget_check
+from config import BASE_CURRENCY, currencies_active
+from currency.codes import split_currency
+from currency.rates import RateUnavailable, convert, get_rate
 from i18n import _
 from middleware.accounting import _add_new_category, _add_operation, _find_active_category, _get_category, _show_all_categories
 from telegram import buttons
-from telegram.validation import normalize_category_name, normalize_comment, parse_category_id
+from telegram.validation import checked_amount, normalize_category_name, normalize_comment, parse_category_id
 from .matching import match_category
 from .parser import AmountError, looks_like_quick_entry, parse_quick_entry
+from timeutils import local_now
 
 router = Router(name='quick_input')
 
@@ -38,8 +42,12 @@ def _summary(pending: Dict[str, Any], category_name: Optional[str] = None) -> st
     text += '</b>'
     if pending.get('comment'):
         text += f'\n💬 {escape(pending["comment"])}'
+    original = pending.get('original')
+    if original:
+        text += f"\n💱 {original['amount']} {original['currency']} × {original['rate']} = {pending['amount']} {BASE_CURRENCY}"
     if pending.get('expression'):
-        text = f'🧮 {escape(pending["expression"])} = <b>{pending["amount"]}</b>\n' + text
+        shown = f"{original['amount']} {original['currency']}" if original else pending['amount']
+        text = f'🧮 {escape(pending["expression"])} = <b>{shown}</b>\n' + text
     return text
 
 
@@ -57,6 +65,14 @@ def _category_rows(categories):
     return [[types.InlineKeyboardButton(text=c.name.capitalize(), callback_data=f'{CB_CATEGORY}{c.id}')] for c in categories]
 
 
+def _original_fields(pending: Dict[str, Any]) -> Dict[str, Any]:
+    original = pending.get('original')
+    if not original:
+        return {}
+    return {'original_amount': Decimal(original['amount']), 'original_currency': original['currency'],
+            'rate': Decimal(original['rate'])}
+
+
 async def _save(message: types.Message, user_id: int, pending: Dict[str, Any], category) -> None:
     operation_id = await _add_operation(
         user_id=user_id,
@@ -64,6 +80,7 @@ async def _save(message: types.Message, user_id: int, pending: Dict[str, Any], c
         quantity=Decimal(pending['amount']),
         operation_type=OperationType[pending['type']],
         comment=pending.get('comment'),
+        **_original_fields(pending),
     )
     if operation_type_is_expense(pending):
         await schedule_budget_check(user_id)
@@ -81,16 +98,35 @@ async def quick_entry_handler(message: types.Message, state: FSMContext):
         return
 
     user_id = message.from_user.id
+    words, original, amount = entry.words, None, entry.amount
+    if currencies_active():
+        code, words = split_currency(entry.words)
+        if code and code != BASE_CURRENCY:
+            today = local_now().date()
+            try:
+                rate = await get_rate(code, BASE_CURRENCY, today, today)
+            except RateUnavailable:
+                await message.answer(text=_('Не удалось получить курс {code}. Попробуйте позже или укажите сумму в {base}.').format(
+                    code=code, base=BASE_CURRENCY))
+                return
+            amount = checked_amount(convert(entry.amount, rate))
+            if amount is None:
+                await message.answer(text=_('Не получилось посчитать сумму. Пример: 500 кафе обед или 1200+350*2 продукты'))
+                return
+            original = {'amount': str(entry.amount), 'currency': code, 'rate': str(rate)}
+
     categories = await _show_all_categories(user_id)
-    match = match_category(entry.words, categories)
+    match = match_category(words, categories)
     pending = {
         'type': entry.operation_type.name,
-        'amount': str(entry.amount),
+        'amount': str(amount),
         'expression': entry.expression,
         'comment': normalize_comment(match.rest),
+        'original': original,
     }
 
-    if match.kind == 'exact' and entry.expression is None:
+    # A calculation or a conversion is shown first; a plain amount with a known category is saved at once.
+    if match.kind == 'exact' and entry.expression is None and original is None:
         await state.update_data(**{PENDING_KEY: None})
         await _save(message, user_id, pending, match.category)
         return

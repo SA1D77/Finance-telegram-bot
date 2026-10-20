@@ -40,3 +40,7 @@ class Accounting(Base):
     category_id = Column(Integer, ForeignKey(Categories.id), nullable=False)
     operation_type = Column(Enum(OperationType), nullable=False)
     comment = Column(String(COMMENT_MAX_LENGTH), nullable=True)
+    # Set when entered in another currency: quantity is then the converted amount in BASE_CURRENCY.
+    original_amount = Column(MONEY, nullable=True)
+    original_currency = Column(String(3), nullable=True)
+    rate = Column(Numeric(20, 10), nullable=True)

@@ -30,6 +30,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 📤 **Export and backups:** `/export` sends operations for a period as CSV (UTF-8 with BOM, `;`, opens in Excel) or XLSX, built in memory. Every day at `BACKUP_HOUR` the worker runs `pg_dump` (client 15 in the image), gzips it to `./backups`, keeps the newest `BACKUP_KEEP` and sends the file to you; `/backup` makes one now. Restore: stop the bot and run `restore.bat backupsinance-….sql.gz` (Windows), or `gunzip -c FILE | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`. The dump uses `--clean --if-exists`, so it replaces the current data.
 
+💱 **Several currencies:** set `BASE_CURRENCY` (e.g. `UZS`) and type `50 usd кафе`, `50$ отель` or `20 евро такси`: the amount is converted by the day's rate from the free [fawazahmed0 currency-api](https://github.com/fawazahmed0/exchange-api) (no key, historical rates, a fallback mirror, cached in Redis), shown for confirmation and stored in the base currency together with the original amount, currency and rate. Balance, budgets, analytics and reports stay in the base currency; history, "last 10" and exports show the original. Editing the amount in history switches the operation to the base currency. Empty `BASE_CURRENCY` keeps the bot single-currency.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.

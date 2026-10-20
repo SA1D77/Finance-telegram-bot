@@ -179,6 +179,7 @@ async def last_ten_operations(message: types.Message):
     accounts = await _get_accounts(user_id=message.from_user.id, time='last')
     msg = str()
     for i in accounts:
-        msg += '\n<b>📌' + format_local(i.created_at) + '  ' + str(i.quantity) + ' => ' + escape(i.categories) + '</b>' + (f' 💬 {escape(i.comment)}' if i.comment else '') + '\n'
+        msg += '\n<b>📌' + format_local(i.created_at) + '  ' + str(i.quantity) + ' => ' + escape(i.categories) + '</b>' + (f' 💬 {escape(i.comment)}' if i.comment else '')
+        msg += (f' 💱 {i.original_amount} {i.original_currency}' if getattr(i, 'original_currency', None) else '') + '\n'
 
     await message.answer(text=_('🕒 Последние 10 операций') + ':\n' + msg, reply_markup=await buttons.get_button_manage_money())

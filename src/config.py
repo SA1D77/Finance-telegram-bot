@@ -54,6 +54,16 @@ FEATURE_RECURRING = _flag('FEATURE_RECURRING')
 FEATURE_GOALS = _flag('FEATURE_GOALS')
 FEATURE_EXPORT = _flag('FEATURE_EXPORT')
 FEATURE_BACKUP = _flag('FEATURE_BACKUP')
+FEATURE_CURRENCIES = _flag('FEATURE_CURRENCIES')
+
+# Main currency (ISO code such as UZS, RUB, USD). Amounts in other currencies are converted into it;
+# leave empty to keep the bot single-currency.
+BASE_CURRENCY = (os.environ.get('BASE_CURRENCY') or '').strip().upper()
+
+
+def currencies_active() -> bool:
+    return FEATURE_CURRENCIES and len(BASE_CURRENCY) == 3 and BASE_CURRENCY.isalpha()
+
 
 # Database backups (pg_dump in the celery container, scheduled by beat).
 BACKUP_DIR = os.environ.get('BACKUP_DIR') or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backups')

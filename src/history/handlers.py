@@ -70,6 +70,8 @@ def _card_text(row) -> str:
     text = f'📌 {format_local(row.created_at)}\n{label} <b>{row.quantity} {escape(row.category)}</b>'
     if row.comment:
         text += f'\n💬 {escape(row.comment)}'
+    if getattr(row, 'original_currency', None):
+        text += f'\n💱 {row.original_amount} {row.original_currency}'
     return text
 
 
@@ -293,7 +295,8 @@ async def edit_amount_input(message: types.Message, state: FSMContext):
         await message.answer(text=_('Не получилось посчитать сумму. Пример: 500 кафе обед или 1200+350*2 продукты'),
                              reply_markup=await buttons.get_button_cancel())
         return
-    await _apply(message, state, row, quantity=amount)
+    # The new amount is in the base currency, so the original-currency details no longer apply.
+    await _apply(message, state, row, quantity=amount, original_amount=None, original_currency=None, rate=None)
 
 
 @router.message(HistoryEditState.comment)
