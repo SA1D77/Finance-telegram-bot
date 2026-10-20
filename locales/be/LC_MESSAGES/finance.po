@@ -1,0 +1,516 @@
+# Belarusian translations for PROJECT.
+# Copyright (C) 2023 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2023-08-10 11:14+0300\n"
+"PO-Revision-Date: 2023-08-10 11:14+0300\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: be\n"
+"Language-Team: be <LL@li.org>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.1\n"
+
+#: src/telegram/buttons.py:6 src/telegram/telegram_api.py:58
+msgid "➕ Доход"
+msgstr "➕ Даход"
+
+#: src/telegram/buttons.py:7 src/telegram/telegram_api.py:66
+msgid "➖ Расход"
+msgstr "➖ Расход"
+
+#: src/telegram/buttons.py:9 src/telegram/telegram_api.py:82
+msgid "🗂 Категории"
+msgstr "🗂 Катэгорыі"
+
+#: src/telegram/buttons.py:10 src/telegram/telegram_api.py:89
+msgid "📥 Добавить категорию"
+msgstr "📥 Дадаць катэгорыю"
+
+#: src/telegram/buttons.py:11 src/telegram/telegram_api.py:97
+msgid "📤 Удалить категорию"
+msgstr "📤 Выдаліць катэгорыю"
+
+#: src/telegram/buttons.py:12 src/telegram/telegram_api.py:109
+msgid "📊 Баланс"
+msgstr "📊 Баланс"
+
+#: src/telegram/buttons.py:19
+msgid "Выберите действие"
+msgstr "Выберыце дзеянне"
+
+#: src/telegram/buttons.py:26
+msgid "⬅️ Отмена"
+msgstr "⬅️ Адмена"
+
+#: src/telegram/telegram_api.py:62
+msgid "ДОХОД:"
+msgstr "ДАХОД:"
+
+#: src/telegram/telegram_api.py:63
+msgid "Введите ваш доход"
+msgstr "Увядзіце ваш даход"
+
+#: src/telegram/telegram_api.py:70
+msgid "РАСХОД:"
+msgstr "РАСХОД:"
+
+#: src/telegram/telegram_api.py:71
+msgid "Введите ваш расход"
+msgstr "Увядзіце ваш расход"
+
+#: src/telegram/telegram_api.py:78
+msgid "Отменено"
+msgstr "Адменена"
+
+#: src/telegram/telegram_api.py:86
+msgid "Вот список текущих категорий:\n"
+msgstr "Вось спіс бягучых катэгорый: \n"
+
+#: src/telegram/telegram_api.py:93
+msgid "НОВАЯ КАТЕГОРИЯ:"
+msgstr "НОВАЯ КАТЭГОРЫЯ:"
+
+#: src/telegram/telegram_api.py:94
+msgid "Введите название новой категории"
+msgstr "Увядзіце назву новай катэгорыі"
+
+#: src/telegram/telegram_api.py:102
+msgid "УДАЛЕНИЕ КАТЕГОРИИ:"
+msgstr "ВЫДАЛЕННЕ КАТЭГОРЫІ:"
+
+#: src/telegram/telegram_api.py:105
+msgid "Мои категории:\n"
+msgstr "Мае катэгорыі:\n"
+
+#: src/telegram/telegram_api.py:106
+msgid "Введите категорию"
+msgstr "Увядзіце катэгорыю"
+
+#: src/telegram/telegram_api.py:111
+msgid "ВАШ ТЕКУЩИЙ БАЛАНС:"
+msgstr "ВАШ БЯГУЧЫ БАЛАНС:"
+
+#: src/telegram/telegram_api.py:133 src/telegram/telegram_api.py:154
+msgid "Новая запись:"
+msgstr "Новы запіс:"
+
+#: src/telegram/telegram_api.py:134
+msgid "ДОХОД"
+msgstr "ДАХОД"
+
+#: src/telegram/telegram_api.py:155
+msgid "РАСХОД"
+msgstr "РАСХОД"
+
+#: src/telegram/telegram_api.py:165
+msgid "Посмотрите внимательно, кажется такая категория уже существует!"
+msgstr "Паглядзіце ўважліва, здаецца такая катэгорыя ўжо існуе!"
+
+#: src/telegram/telegram_api.py:168
+msgid "Категория успешно добавлена!"
+msgstr "Катэгорыя паспяхова дададзеная!"
+
+#: src/telegram/telegram_api.py:178
+msgid "Мне кажется или такой категории нет?"
+msgstr "Мне здаецца або такой катэгорыі няма?"
+
+#: src/telegram/telegram_api.py:181
+msgid "Категория успешно удалена!"
+msgstr "Катэгорыя паспяхова выдалена!"
+
+#: src/telegram/telegram_api.py:60
+msgid "Выберите язык"
+msgstr "Выберыце мову"
+
+#: src/telegram/telegram_api.py:83
+msgid "Ваш язык был изменен"
+msgstr "Ваша мова была зменена"
+
+#: src/telegram/telegram_api.py:80
+msgid "🔄 Перезагрузить"
+msgstr "🔄 Перазагрузіць"
+
+#: src/telegram/telegram_api.py:73
+msgid "Изменения вступили в силу"
+msgstr "Змены ўступілі ў сілу"
+
+#: src/telegram/telegram_api.py:83
+msgid "Выберите место для отправки отчета"
+msgstr "Выберыце месца для адпраўкі справаздачы"
+
+#: src/telegram/telegram_api.py:268
+msgid "В отчете отоборажается информация за последние 90 дней"
+msgstr "У справаздачы адлюстроўваецца інфармацыя за апошнія 90 дзён"
+
+#: src/telegram/telegram_api.py:269
+msgid "Введите вашу почту"
+msgstr "Увядзіце вашу пошту"
+
+#: src/telegram/telegram_api.py:280
+msgid "Проверьте свою почту"
+msgstr "Праверце сваю пошту"
+
+#: src/telegram/buttons.py:46
+msgid "📌 Чат"
+msgstr "📌 Чат"
+
+#: src/telegram/buttons.py:47
+msgid "📧 Почта"
+msgstr "📧 Пошта"
+
+#: src/telegram/buttons.py:58
+msgid "⭕️ Да"
+msgstr "⭕️ Так"
+
+#: src/telegram/buttons.py:59
+msgid "❌ Нет"
+msgstr "❌ Не"
+
+#: src/telegram/buttons.py:82
+msgid "🌐 Язык"
+msgstr "🌐 Мова"
+
+#: src/telegram/buttons.py:83
+msgid "❓ Помощь"
+msgstr "❓ Дапамога"
+
+#: src/telegram/telegram_api.py:5
+msgid "⚙️ Настройки"
+msgstr "⚙️ Наладжваньне"
+
+#: src/telegram/telegram_api.py:5
+msgid "🕒 Последние 10 операций"
+msgstr "🕒 Апошнія 10 аперацый"
+
+#: src/telegram/telegram_api.py:5
+msgid "Гланое меню"
+msgstr "Галоўнае меню"
+
+#: src/telegram/telegram_api.py:5
+msgid "Отчет сформирован!"
+msgstr "Справаздача сфарміравана!"
+
+#: src/telegram/telegram_api.py:5
+msgid "Выберите промежуток времени"
+msgstr "Выберыце прамежак часу"
+
+#: src/telegram/buttons.py:83
+msgid "День"
+msgstr "Дзень"
+
+#: src/telegram/buttons.py:83
+msgid "Месяц"
+msgstr "Месяц"
+
+#: src/telegram/buttons.py:83
+msgid "Год"
+msgstr "Год"
+
+#: src/telegram/telegram_api.py:59
+msgid "Похоже такая почта уже существует! Выберите другую"
+msgstr "Падобна такая пошта ўжо існуе! Выберыце іншую"
+
+#: src/telegram/telegram_api.py:289
+msgid "Сохранить почту?"
+msgstr "Захаваць пошту?"
+
+#: src/telegram/telegram_api.py:303
+msgid "У вас есть сохранненая почта, использовать её?"
+msgstr "У вас ёсць захаваная пошта, выкарыстоўваць яе?"
+
+#: src/telegram/messages.py:1
+msgid ""
+"Привет! 👋\n\nЯ рад приветствовать тебя в нашем телеграмм боте по учету финансов 💸 \n\nЯ здесь, чтобы помочь тебе контролировать свои финансы, планировать бюджет и достигать финансовых целей 📈. С моей помощью ты сможешь вести учет доходов и расходов, анализировать свои финансовые показатели.\n\nБудем работать вместе!😁"
+msgstr ""
+"Прывітанне! 👋\n\nЯ рады вітаць цябе ў нашым тэлеграм боце па ўліку фінансаў 💸 \n\nЯ тут, каб дапамагчы табе кантраляваць свае фінансы🤑, планаваць бюджэт і дасягаць фінансавых мэтаў 📈.З маёй дапамогай ты зможаш весці ўлік даходаў і выдаткаў, аналізаваць свае фінансавыя паказчыкі.\n\nБудем працаваць разам!😁"
+
+#: src/telegram/messages.py:2
+msgid "У вас отсутствует имя пользователя 😅, наш бот так не сможет работать 😰!\nУстановите его в настройках Telegram"
+msgstr "У вас адсутнічае імя карыстальніка 😅, наш бот так не зможа працаваць 😰!\n Усталюйце яго ў наладах Telegram"
+
+#: src/telegram/messages.py:6
+msgid "Хмм 🧐, с вашими числами что-то не так. Проверьте их правильность 🫣.\nНапоминаю, что дробные числа пишутся через точку."
+msgstr "Хмм 🧐, з вашымі лікамі нешта не так. Праверце іх правільнасць 🫣.\nНагадваю, што дробавыя колькасці пішуцца праз кропку."
+
+#: src/telegram/messages.py:8
+msgid ""
+"Бот для учета финансов \n\n 📌 Бот предоставляет удобные инструменты для учета ваших финансов. Основные команды представлены в виде кнопок внизу экрана, а также дополнительные команды можно найти в левом верхнем углу поля ввода.\n\nОписание команд:\nБаланс: Показывает ваш текущий баланс.\nДоход/Расход: Добавляет доход или расход. Вы вводите сумму (используя точку для десятичных чисел), затем выбираете категорию из вашего списка категорий. Просто следуйте инструкциям, и всё будет готово.\nДобавление/Удаление категории: Добавляет или удаляет категорию для классификации расходов или доходов.\nВсе категории: Выводит список всех доступных категорий.\nНастройки: Меняет язык и показывает это описание.\n\n❓ Как добавить расход/доход?\n❗️ Нажмите 'Доход' или 'Расход', в зависимости от того, что вы хотите добавить.\nВведите сумму, используя точку для десятичных чисел.\nВыберите соответствующую категорию из вашего списка категорий.\nГотово! Ваш расход или доход добавлен.\n\n❓ Генерация отчета:\n❗️ При вводе команды /report вам будет предложено отправить отчет в чат или на вашу почту. Также есть опция сохранения вашей почты для удобства.\n\nС помощью этого бота вы сможете легко отслеживать свои финансы и принимать более осознанные финансовые решения."
+msgstr ""
+"Бот для ўліку фінансаў \n\n 📌 Бот дае зручныя інструменты для ўліку вашых фінансаў. Асноўныя каманды прадстаўлены ў выглядзе кнопак унізе экрана, а таксама дадатковыя каманды можна знайсці ў левым верхнім куце поля ўводу. \n\nАпісанне каманд:\nБаланс: Паказвае ваш бягучы баланс.\nДаход/Выдатак: Дадае даход або расход. Вы ўводзіце суму (выкарыстоўваючы кропку для дзесятковых лікаў), затым выбіраеце катэгорыю з вашага спісу катэгорый. Проста выконвайце інструкцыі, і ўсё будзе гатова.\nДаданне/Выдаленне катэгорыі: Дадае ці выдаляе катэгорыю для класіфікацыі выдаткаў ці даходаў.\nУсе катэгорыі: Выводзіць спіс усіх даступных катэгорый.\nНалады: Змяняе мову і паказвае гэтае апісанне.\n\n❓ Як дадаць расход/даход?\n❗️ Націсніце 'Даход' або 'Расход', у залежнасці ад таго, што вы хочаце дадаць.\nУвядзіце суму, выкарыстоўваючы кропку для дзесятковых лікаў.\nВыберыце адпаведную катэгорыю з вашага спісу катэгорый.\nГатова! Ваш выдатак ці даход дададзены.\n\n❓ Генерацыя справаздачы:\n❗️ Пры ўводзе каманды /report вам будзе прапанавана адправіць справаздачу ў чат ці на вашу пошту. Таксама ёсць опцыя захавання вашай пошты для зручнасці.\n\nЗ дапамогай гэтага робата вы зможаце лёгка адсочваць свае фінансы і прымаць больш усвядомленыя фінансавыя рашэнні."
+
+#: venv/lib/python3.10/site-packages/click/_termui_impl.py:518
+msgid "{editor}: Editing failed"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/_termui_impl.py:522
+msgid "{editor}: Editing failed: {e}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1120
+msgid "Aborted!"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1309
+#: venv/lib/python3.10/site-packages/click/decorators.py:559
+msgid "Show this message and exit."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1340
+#: venv/lib/python3.10/site-packages/click/core.py:1370
+msgid "(Deprecated) {text}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1387
+msgid "Options"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1415
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1428
+msgid "DeprecationWarning: The command {name!r} is deprecated."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1636
+msgid "Commands"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1668
+msgid "Missing command."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:1746
+msgid "No such command {name!r}."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:2310
+msgid "Value must be an iterable."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:2333
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:2778
+msgid "env var: {var}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:2808
+msgid "(dynamic)"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:2821
+msgid "default: {default}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/core.py:2834
+msgid "required"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/decorators.py:465
+#, python-format
+msgid "%(prog)s, version %(version)s"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/decorators.py:528
+msgid "Show the version and exit."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:44
+#: venv/lib/python3.10/site-packages/click/exceptions.py:80
+msgid "Error: {message}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:72
+msgid "Try '{command} {option}' for help."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:121
+msgid "Invalid value: {message}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:123
+msgid "Invalid value for {param_hint}: {message}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:179
+msgid "Missing argument"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:181
+msgid "Missing option"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:183
+msgid "Missing parameter"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:185
+msgid "Missing {param_type}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:192
+msgid "Missing parameter: {param_name}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:212
+msgid "No such option: {name}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:226
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:262
+msgid "unknown error"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/exceptions.py:269
+msgid "Could not open file {filename!r}: {message}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/parser.py:231
+msgid "Argument {name!r} takes {nargs} values."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/parser.py:413
+msgid "Option {name!r} does not take a value."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/parser.py:473
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: venv/lib/python3.10/site-packages/click/shell_completion.py:317
+msgid "Shell completion is not supported for Bash versions older than 4.4."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/shell_completion.py:324
+msgid "Couldn't detect Bash version, shell completion is not supported."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/termui.py:158
+msgid "Repeat for confirmation"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/termui.py:174
+msgid "Error: The value you entered was invalid."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/termui.py:176
+msgid "Error: {e.message}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/termui.py:187
+msgid "Error: The two entered values do not match."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/termui.py:243
+msgid "Error: invalid input"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/termui.py:773
+msgid "Press any key to continue..."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:266
+msgid ""
+"Choose from:\n"
+"\t{choices}"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:300
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:394
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:414
+msgid "{value!r} is not a valid {number_type}."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:470
+msgid "{value} is not in the range {range}."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:611
+msgid "{value!r} is not a valid boolean."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:635
+msgid "{value!r} is not a valid UUID."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:822
+msgid "file"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:824
+msgid "directory"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:826
+msgid "path"
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:877
+msgid "{name} {filename!r} does not exist."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:886
+msgid "{name} {filename!r} is a file."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:894
+msgid "{name} '{filename}' is a directory."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:903
+msgid "{name} {filename!r} is not readable."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:912
+msgid "{name} {filename!r} is not writable."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:921
+msgid "{name} {filename!r} is not executable."
+msgstr ""
+
+#: venv/lib/python3.10/site-packages/click/types.py:987
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
