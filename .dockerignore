@@ -1,2 +1,6 @@
 venv/
 .vscode/
+.git/
+**/.env
+**/__pycache__
+src/report/generated/
