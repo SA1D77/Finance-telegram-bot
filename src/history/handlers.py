@@ -17,6 +17,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from accounting.models import OperationType
+from budgets.notify import schedule_budget_check
 from i18n import _, __
 from middleware.accounting import _get_category, _show_all_categories
 from telegram import buttons
@@ -275,6 +276,7 @@ async def _edited_op(message: types.Message, state: FSMContext):
 
 async def _apply(message: types.Message, state: FSMContext, row, **values) -> None:
     await update_operation(message.from_user.id, row.id, **values)
+    await schedule_budget_check(message.from_user.id)  # a bigger amount or another month may cross a limit
     await state.set_state(None)
     updated = await get_operation(message.from_user.id, row.id)
     flt = await _get_filter(state)
@@ -341,6 +343,7 @@ async def edit_category_apply(callback_query: types.CallbackQuery, state: FSMCon
         await callback_query.answer(text=_('Операция не найдена: возможно, она уже удалена.'), show_alert=True)
         return
     await update_operation(user_id, row.id, category_id=category.id)
+    await schedule_budget_check(user_id)
     updated = await get_operation(user_id, row.id)
     flt = await _get_filter(state)
     await callback_query.message.edit_text(text='✅ ' + _('Сохранено') + '\n\n' + _card_text(updated),

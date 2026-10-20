@@ -1,7 +1,7 @@
 from aiogram import Dispatcher
 from aiogram.fsm.storage.base import BaseStorage
 
-from config import FEATURE_HISTORY, FEATURE_QUICK_INPUT
+from config import FEATURE_BUDGETS, FEATURE_HISTORY, FEATURE_QUICK_INPUT
 from i18n import setup_middleware
 from middleware.ensure_user import EnsureUserMiddleware
 from middleware.owner import OwnerOnlyMiddleware
@@ -16,7 +16,7 @@ from telegram import (
 
 
 def create_dispatcher(storage: BaseStorage, owner_id: int, quick_input: bool = FEATURE_QUICK_INPUT,
-                      history: bool = FEATURE_HISTORY) -> Dispatcher:
+                      history: bool = FEATURE_HISTORY, budgets: bool = FEATURE_BUDGETS) -> Dispatcher:
     dp = Dispatcher(storage=storage)
     # Runs before i18n and routing: other users are ignored without a reply.
     dp.update.outer_middleware(OwnerOnlyMiddleware(owner_id=owner_id))
@@ -36,6 +36,9 @@ def create_dispatcher(storage: BaseStorage, owner_id: int, quick_input: bool = F
     if history:
         from history.handlers import router as history_router
         dp.include_router(history_router)
+    if budgets:
+        from budgets.handlers import router as budgets_router
+        dp.include_router(budgets_router)
     if quick_input:
         # Last: it only catches plain messages that start with an amount.
         from quick_input.handlers import router as quick_input_router

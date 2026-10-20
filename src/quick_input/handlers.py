@@ -13,6 +13,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from accounting.models import OperationType
+from budgets.notify import schedule_budget_check
 from i18n import _
 from middleware.accounting import _add_new_category, _add_operation, _find_active_category, _get_category, _show_all_categories
 from telegram import buttons
@@ -42,6 +43,10 @@ def _summary(pending: Dict[str, Any], category_name: Optional[str] = None) -> st
     return text
 
 
+def operation_type_is_expense(pending: Dict[str, Any]) -> bool:
+    return pending['type'] == OperationType.expenditure.name
+
+
 def _keyboard(rows) -> types.InlineKeyboardMarkup:
     rows = [list(row) for row in rows]
     rows.append([types.InlineKeyboardButton(text=_('⬅️ Отмена'), callback_data='cancel')])
@@ -60,6 +65,8 @@ async def _save(message: types.Message, user_id: int, pending: Dict[str, Any], c
         operation_type=OperationType[pending['type']],
         comment=pending.get('comment'),
     )
+    if operation_type_is_expense(pending):
+        await schedule_budget_check(user_id)
     # The reply keyboard is still on screen in this flow, so the message can carry the inline undo button.
     await message.answer(text='✅ ' + _('Новая запись:') + '\n' + _summary(pending, category.name),
                          reply_markup=buttons.undo_markup(operation_id) or await buttons.get_button_manage_money())

@@ -205,3 +205,111 @@ async def test_update_rejects_non_editable_fields(db):
 
     with pytest.raises(ValueError):
         await queries.update_operation(OWNER, ids[0], operation_type=accounting.OperationType.income)
+
+
+async def _budget_setup():
+    from budgets import service as budgets
+    await user.ensure_user(OWNER, None)
+    await accounting._add_new_category('кафе', OWNER)
+    await accounting._add_new_category('зарплата', OWNER)
+    cats = {c.name: c.id for c in await accounting._show_all_categories(OWNER)}
+    await budgets.set_budget(OWNER, cats['кафе'], Decimal('1000.00'))
+    await budgets.set_budget(OWNER, None, Decimal('5000.00'))
+    return budgets, cats
+
+
+async def _spend(category_id, amount, when=None):
+    from history import queries
+    op_id = await accounting._add_expenditure(OWNER, category_id, Decimal(amount))
+    if when is not None:
+        await queries.update_operation(OWNER, op_id, created_at=when)
+    return op_id
+
+
+async def test_budget_upsert_and_single_overall_limit(db):
+    budgets, cats = await _budget_setup()
+    await budgets.set_budget(OWNER, None, Decimal('6000.00'))  # replaces, does not duplicate
+    await budgets.set_budget(OWNER, cats['кафе'], Decimal('1200.00'))
+
+    statuses = await budgets.budget_statuses(OWNER)
+    assert [(s.category_id, s.limit) for s in statuses] == [(None, Decimal('6000.00')), (cats['кафе'], Decimal('1200.00'))]
+
+    assert await budgets.delete_budget(OWNER, None) is True
+    assert await budgets.delete_budget(OWNER, None) is False
+    assert [s.category_id for s in await budgets.budget_statuses(OWNER)] == [cats['кафе']]
+
+
+async def test_spending_counts_only_this_months_expenses(db):
+    from datetime import datetime, timedelta
+    budgets, cats = await _budget_setup()
+    _, since, _ = budgets.month_bounds()
+    await _spend(cats['кафе'], '300')
+    await _spend(cats['кафе'], '999', when=since - timedelta(minutes=1))  # last month
+    await accounting._add_income(OWNER, cats['зарплата'], Decimal('70000'))   # income is not spending
+
+    by_category = {s.category_id: s.spent for s in await budgets.budget_statuses(OWNER)}
+    assert by_category == {None: Decimal('300.00'), cats['кафе']: Decimal('300.00')}
+    assert datetime(2000, 1, 1) < since
+
+
+async def test_alerts_once_per_threshold_and_month(db):
+    from datetime import timedelta
+    budgets, cats = await _budget_setup()
+
+    await _spend(cats['кафе'], '790')
+    assert await budgets.new_alerts(OWNER) == []                      # 79%
+
+    await _spend(cats['кафе'], '10')
+    alerts = await budgets.new_alerts(OWNER)
+    assert [(s.category_id, t) for s, t in alerts] == [(cats['кафе'], 80)]
+    assert await budgets.new_alerts(OWNER) == []                      # no repeat
+
+    await _spend(cats['кафе'], '250')
+    assert [(s.category_id, t) for s, t in await budgets.new_alerts(OWNER)] == [(cats['кафе'], 100)]
+    assert await budgets.new_alerts(OWNER) == []
+
+    # Next month starts clean.
+    _, _, until = budgets.month_bounds()
+    from timeutils import to_local
+    next_month = to_local(until + timedelta(hours=1))
+    assert await budgets.new_alerts(OWNER, next_month) == []
+    await _spend(cats['кафе'], '1000', when=until + timedelta(hours=1))
+    assert [(s.category_id, t) for s, t in await budgets.new_alerts(OWNER, next_month)] == [(cats['кафе'], 100)]
+
+
+async def test_jump_past_100_sends_one_alert(db):
+    budgets, cats = await _budget_setup()
+    await _spend(cats['кафе'], '1500')
+
+    alerts = await budgets.new_alerts(OWNER)
+
+    assert [(s.category_id, t) for s, t in alerts] == [(cats['кафе'], 100)]
+    period, _, _ = budgets.month_bounds()
+    assert await budgets.record_alert(alerts[0][0].budget_id, period, 80) is False  # 80 recorded too
+
+
+async def test_deleting_category_removes_its_budget(db):
+    from sqlalchemy import delete
+    from accounting.models import Categories
+    from middleware.service import _execute_insert_update_delete_command
+    budgets, cats = await _budget_setup()
+    await _execute_insert_update_delete_command(delete(Categories).where(Categories.id == cats['зарплата']))
+    await budgets.set_budget(OWNER, cats['кафе'], Decimal('10'))
+
+    assert len(await budgets.budget_statuses(OWNER)) == 2
+
+
+async def test_check_and_notify_sends_once_in_user_language(db):
+    from budgets.tasks import check_and_notify
+    budgets, cats = await _budget_setup()
+    await user._language_locale(OWNER, 'en')
+    await _spend(cats['кафе'], '850')
+    sent = []
+
+    class FakeBot:
+        async def send_message(self, chat_id, text):
+            sent.append((chat_id, text))
+
+    assert await check_and_notify(OWNER, bot=FakeBot()) == 1
+    assert await check_and_notify(OWNER, bot=FakeBot()) == 0
+    assert sent == [(OWNER, '🟡 Кафе: spent 850.00 of 1000.00 (85%). 150.00 left.')]

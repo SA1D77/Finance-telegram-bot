@@ -698,3 +698,63 @@ msgstr "Апошняя аперацыя:"
 #: src/telegram/buttons.py
 msgid "↩️ Отменить"
 msgstr "↩️ Адмяніць"
+
+#: src/budgets/texts.py
+msgid "Общий бюджет"
+msgstr "Агульны бюджэт"
+
+#: src/budgets/texts.py
+msgid "🔴 {name}: лимит исчерпан. Потрачено {spent} из {limit} ({percent}%), перерасход {over}."
+msgstr "🔴 {name}: ліміт вычарпаны. Выдаткавана {spent} з {limit} ({percent}%), перарасход {over}."
+
+#: src/budgets/texts.py
+msgid "🟡 {name}: потрачено {spent} из {limit} ({percent}%). Осталось {left}."
+msgstr "🟡 {name}: выдаткавана {spent} з {limit} ({percent}%). Засталося {left}."
+
+#: src/budgets/handlers.py
+msgid "🎯 Бюджет на {month}"
+msgstr "🎯 Бюджэт на {month}"
+
+#: src/budgets/handlers.py
+msgid "До конца месяца дней: {days}"
+msgstr "Да канца месяца дзён: {days}"
+
+#: src/budgets/handlers.py
+msgid "Лимитов пока нет. Задайте общий лимит на месяц или лимит на категорию."
+msgstr "Лімітаў пакуль няма. Задайце агульны ліміт на месяц або ліміт на катэгорыю."
+
+#: src/budgets/handlers.py
+msgid "{spent} из {limit}"
+msgstr "{spent} з {limit}"
+
+#: src/budgets/handlers.py
+msgid "осталось {left}"
+msgstr "засталося {left}"
+
+#: src/budgets/handlers.py
+msgid "перерасход {over}"
+msgstr "перарасход {over}"
+
+#: src/budgets/handlers.py
+msgid "Можно тратить {per_day} в день"
+msgstr "Можна траціць {per_day} у дзень"
+
+#: src/budgets/handlers.py
+msgid "🎯 Общий лимит"
+msgstr "🎯 Агульны ліміт"
+
+#: src/budgets/handlers.py
+msgid "➕ Лимит на категорию"
+msgstr "➕ Ліміт на катэгорыю"
+
+#: src/budgets/handlers.py
+msgid "🗑 Убрать лимит"
+msgstr "🗑 Прыбраць ліміт"
+
+#: src/telegram/buttons.py
+msgid "🎯 Бюджет"
+msgstr "🎯 Бюджэт"
+
+#: src/budgets/handlers.py
+msgid "Введите лимит на месяц для «{name}» (0 — убрать лимит)"
+msgstr "Увядзіце ліміт на месяц для «{name}» (0 — прыбраць ліміт)"

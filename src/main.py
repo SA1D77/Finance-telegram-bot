@@ -34,6 +34,7 @@ async def main() -> None:
     await bot.set_my_commands([
         BotCommand(command='history', description='История операций'),
         BotCommand(command='undo', description='Отменить последнюю операцию'),
+        BotCommand(command='budget', description='Бюджет и лимиты на месяц'),
         BotCommand(command='report', description='Отчёт'),
     ])
 

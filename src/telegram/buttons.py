@@ -3,7 +3,7 @@ from typing import Optional
 
 from aiogram import types
 
-from config import FEATURE_HISTORY
+from config import FEATURE_BUDGETS, FEATURE_HISTORY
 from i18n import _
 
 
@@ -18,6 +18,8 @@ async def get_button_manage_money(lang=None):
     first_row = [button_balance]
     if FEATURE_HISTORY:
         first_row.append(types.KeyboardButton(text=_('📜 История', locale=lang)))
+    if FEATURE_BUDGETS:
+        first_row.append(types.KeyboardButton(text=_('🎯 Бюджет', locale=lang)))
     button_settings = types.KeyboardButton(text=_('⚙️ Настройки', locale=lang))
     last_button = types.KeyboardButton(text=_('🕒 Последние 10 операций'))
 

@@ -24,6 +24,7 @@ from middleware.accounting import (
 from middleware.accounting import _show_all_categories
 from middleware.general_handlers import category_does_not_exist
 from exception import CategoryDoesNotExist
+from budgets.notify import schedule_budget_check
 
 router = Router(name='main')
 
@@ -118,6 +119,7 @@ async def expenditure_category_input_handler(callback_query: types.CallbackQuery
 
     total = Decimal((await state.get_data())['total'])
     operation_id = await _add_expenditure(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
+    await schedule_budget_check(callback_query.from_user.id)
 
     await callback_query.message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
     await callback_query.message.answer(text=_('РАСХОД') + f' <b>{total} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())

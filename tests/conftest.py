@@ -109,6 +109,16 @@ class BotHarness:
         return await self.storage.get_data(self.key)
 
 
+@pytest.fixture(autouse=True)
+def budget_checks(monkeypatch: pytest.MonkeyPatch) -> List[int]:
+    """Records queued budget checks instead of talking to the Celery broker."""
+    from budgets.tasks import check_budgets
+
+    queued: List[int] = []
+    monkeypatch.setattr(check_budgets, 'delay', queued.append)
+    return queued
+
+
 @pytest.fixture
 def harness(monkeypatch: pytest.MonkeyPatch) -> BotHarness:
     import i18n
