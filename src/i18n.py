@@ -16,13 +16,8 @@ LOCALES_DIR = BASE_DIR / 'locales'
 i18n = I18n(path=LOCALES_DIR, default_locale='ru', domain=I18N_DOMAIN)
 
 
-async def get_lang(username: Optional[str]) -> Optional[str]:
-    if not username:
-        return None
-    user = await _get_user_lang(username=username)
-    if user:
-        return user
-    return None
+async def get_lang(user_id: int) -> Optional[str]:
+    return await _get_user_lang(user_id=user_id) or None
 
 
 class ACLMiddleware(I18nMiddleware):
@@ -31,7 +26,7 @@ class ACLMiddleware(I18nMiddleware):
         if user is None:
             return self.i18n.default_locale
 
-        return await get_lang(user.username) or user.language_code or self.i18n.default_locale
+        return await get_lang(user.id) or user.language_code or self.i18n.default_locale
 
 
 def setup_middleware(dp) -> ACLMiddleware:

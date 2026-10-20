@@ -4,6 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
 
 import asyncio
+from html import escape
 
 from telegram import buttons
 from i18n import _, __
@@ -22,9 +23,9 @@ router = Router(name='report')
 REPORT_PERIODS = {'1', '30', '365'}
 
 
-async def _report_rows(state: FSMContext, username: str):
+async def _report_rows(state: FSMContext, user_id: int):
     data = await state.get_data()
-    accounts = await _get_accounts(username=username, time=data.get('time'))
+    accounts = await _get_accounts(user_id=user_id, time=data.get('time'))
     return serialize_accounts(accounts)
 
 
@@ -32,13 +33,10 @@ async def _report_rows(state: FSMContext, username: str):
 async def run_report(message: types.Message, state: FSMContext):
     await state.set_state(ReportState.time_interval)
     await message.answer(text=_('Выберите промежуток времени'), reply_markup=await buttons.time_interval_buttons())
-    await state.update_data(username=message.from_user.username)
 
 
 @router.callback_query(F.data.startswith('time'), ReportState.time_interval)
 async def report(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    username = data.get('username')
     text = callback_query.data.replace('time_', '').lower()
     if text not in REPORT_PERIODS:
         await callback_query.answer()
@@ -46,7 +44,7 @@ async def report(callback_query: types.CallbackQuery, state: FSMContext):
 
     # Files are built right before sending, so there is no race with a background task
     # and nothing is left on disk afterwards.
-    await state.update_data(time=text, username=username)
+    await state.update_data(time=text)
     await state.set_state(ReportState.send_place)
     await callback_query.message.edit_text(text=_('Отчет сформирован!'))
     await callback_query.message.answer(text=_('Выберите место для отправки отчета'), reply_markup=await buttons.get_report_buttons())
@@ -55,10 +53,10 @@ async def report(callback_query: types.CallbackQuery, state: FSMContext):
 @router.message(ReportState.send_place)
 async def report_send_place(message: types.Message, state: FSMContext):
     user_input = message.text
-    username = message.from_user.username
+    user_id = message.from_user.id
 
     if user_input == _('📧 Почта'):
-        response = await _get_users_email(username=username)
+        response = await _get_users_email(user_id=user_id)
         if response:
             await state.set_state(EmailState.reuse_email)
             await message.answer(text=_('У вас есть сохранненая почта, использовать её?'), reply_markup=await buttons.get_email_remember_buttons())
@@ -66,8 +64,8 @@ async def report_send_place(message: types.Message, state: FSMContext):
             await state.set_state(ReportState.email)
             await message.answer(text=_('Введите вашу почту'), reply_markup=await buttons.get_button_cancel())
     elif user_input == _('📌 Чат'):
-        rows = await _report_rows(state, username)
-        lang = await _get_user_lang(username=username)
+        rows = await _report_rows(state, user_id)
+        lang = await _get_user_lang(user_id=user_id)
         files = await asyncio.to_thread(build_report_files, rows, lang or 'ru')
         try:
             await message.answer_document(document=FSInputFile(files.table, filename='report.xlsx'),
@@ -93,8 +91,8 @@ async def send_report(message: types.Message, state: FSMContext):
         return
 
     await state.set_state(ReportState.remember_email)
-    rows = await _report_rows(state, message.from_user.username)
-    lang = await _get_user_lang(username=message.from_user.username)
+    rows = await _report_rows(state, message.from_user.id)
+    lang = await _get_user_lang(user_id=message.from_user.id)
     email_report.delay(user_email=user_email, accounts=rows, lang=lang)
     await message.answer(text=_('Сохранить почту?'), reply_markup=await buttons.get_email_remember_buttons())
     await state.update_data(email=user_email)
@@ -108,7 +106,7 @@ async def remember_email(message: types.Message, state: FSMContext):
 
     if user_input == _('⭕️ Да'):
         try:
-            await _insert_user_email(username=message.from_user.username, email=email)
+            await _insert_user_email(user_id=message.from_user.id, email=email)
         except EmailAlreadyExist:
             await message.answer(text=_('Похоже такая почта уже существует! Выберите другую'), reply_markup=await buttons.get_button_manage_money())
         else:
@@ -122,11 +120,11 @@ async def reuse_email(message: types.Message, state: FSMContext):
     user_input = message.text
 
     if user_input == _('⭕️ Да'):
-        rows = await _report_rows(state, message.from_user.username)
+        rows = await _report_rows(state, message.from_user.id)
         await state.clear()
-        email = await _get_users_email(username=message.from_user.username)
-        lang = await _get_user_lang(username=message.from_user.username)
-        email_report.delay(user_email=email.decode('utf-8'), accounts=rows, lang=lang)
+        email = await _get_users_email(user_id=message.from_user.id)
+        lang = await _get_user_lang(user_id=message.from_user.id)
+        email_report.delay(user_email=email, accounts=rows, lang=lang)
         await message.answer(text=_('Проверьте свою почту'), reply_markup=await buttons.get_button_manage_money())
     else:
         await state.set_state(ReportState.email)
@@ -135,9 +133,9 @@ async def reuse_email(message: types.Message, state: FSMContext):
 
 @router.message(F.text == __('🕒 Последние 10 операций'), StateFilter(None))
 async def last_ten_operations(message: types.Message):
-    accounts = await _get_accounts(username=message.from_user.username, time='last')
+    accounts = await _get_accounts(user_id=message.from_user.id, time='last')
     msg = str()
     for i in accounts:
-        msg += '\n<b>📌' + i.created_at.strftime("%d/%m/%Y, %H:%M:%S") + '  ' + str(i.quantity) + ' => ' + i.categories + '</b>\n'
+        msg += '\n<b>📌' + i.created_at.strftime("%d/%m/%Y, %H:%M:%S") + '  ' + str(i.quantity) + ' => ' + escape(i.categories) + '</b>\n'
 
     await message.answer(text=_('🕒 Последние 10 операций') + ':\n' + msg, reply_markup=await buttons.get_button_manage_money())

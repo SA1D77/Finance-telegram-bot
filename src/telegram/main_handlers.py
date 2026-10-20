@@ -1,7 +1,12 @@
+from decimal import Decimal
+from html import escape
+from typing import Optional
+
 from aiogram import Router, F, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
+from accounting.models import Categories
 from telegram import buttons
 from i18n import _, __
 from telegram.states import (
@@ -9,6 +14,7 @@ from telegram.states import (
     ExpenditureState,
 )
 from .messages import FLOAT_NUMBER_ERROR
+from .validation import parse_amount, parse_category_id
 from middleware.accounting import (
     _get_balance,
     _add_income,
@@ -21,16 +27,18 @@ from exception import CategoryDoesNotExist
 router = Router(name='main')
 
 
-async def _own_category(callback_query: types.CallbackQuery, state: FSMContext, category: str, username: str) -> bool:
+async def _own_category(callback_query: types.CallbackQuery, state: FSMContext) -> Optional[Categories]:
     """Callback data comes from the client: accept only the user's own active categories."""
+    category_id = parse_category_id(callback_query.data)
     try:
-        await category_does_not_exist(category=category, username=username)
+        if category_id is None:
+            raise CategoryDoesNotExist
+        return await category_does_not_exist(category_id=category_id, user_id=callback_query.from_user.id)
     except CategoryDoesNotExist:
         await callback_query.message.answer(text=_('Мне кажется или такой категории нет?'), reply_markup=await buttons.get_button_manage_money())
         await state.clear()
         await callback_query.answer()
-        return False
-    return True
+        return None
 
 
 @router.message(F.text == __('➕ Доход'), StateFilter(None))
@@ -53,80 +61,61 @@ async def expenditure_handler(message: types.Message, state: FSMContext):
 async def balance_show_handler(message: types.Message):
     await message.answer(text=_('ВАШ ТЕКУЩИЙ БАЛАНС:'))
 
-    user_balance = await _get_balance(message.from_user.username)
+    user_balance = await _get_balance(message.from_user.id)
 
-    await message.answer(text=str(round(user_balance, 2)), reply_markup=await buttons.get_button_manage_money())
+    await message.answer(text=str(user_balance), reply_markup=await buttons.get_button_manage_money())
+
+
+async def _amount_input(message: types.Message, state: FSMContext, next_state) -> None:
+    total = parse_amount(message.text)
+    if total is None:
+        await message.answer(text=_(FLOAT_NUMBER_ERROR), reply_markup=await buttons.get_button_manage_money())
+        return
+
+    await state.set_state(next_state)
+    all_categories = await _show_all_categories(message.from_user.id)
+    await message.answer(text=_('Введите категорию'), reply_markup=await buttons.categories_buttons(categories=all_categories))
+    # FSM data is stored as JSON in Redis, so the Decimal travels as a string.
+    await state.update_data(total=str(total))
 
 
 @router.message(IncomeState.income_input)
 async def income_input_handler(message: types.Message, state: FSMContext):
-    try:
-        total = float(message.text)
-    except (TypeError, ValueError):
-        await message.answer(text=_(FLOAT_NUMBER_ERROR), reply_markup=await buttons.get_button_manage_money())
-    else:
-        await state.set_state(IncomeState.category_input)
-        all_categories = await _show_all_categories(message.from_user.username)
-        await message.answer(text=_('Введите категорию'), reply_markup=await buttons.categories_buttons(categories=all_categories))
-        await state.update_data(total=total)
-        await state.update_data(username=message.from_user.username)
+    await _amount_input(message, state, IncomeState.category_input)
+
+
+@router.message(ExpenditureState.expenditure_input)
+async def expenditure_input_handler(message: types.Message, state: FSMContext):
+    await _amount_input(message, state, ExpenditureState.category_input)
 
 
 @router.callback_query(F.data.startswith('category'), IncomeState.category_input)
 async def income_category_input_handler(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    total = data.get('total')
-    username = data.get('username')
-    text = callback_query.data.replace('category_', '').lower()
-
-    if not await _own_category(callback_query, state, category=text, username=username):
+    category = await _own_category(callback_query, state)
+    if category is None:
         return
 
-    await _add_income(
-        username=username,
-        category=text,
-        quantity=total
-    )
+    total = Decimal((await state.get_data())['total'])
+    await _add_income(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
 
     await callback_query.message.edit_text(text=_('Новая запись:'))
-    await callback_query.message.answer(text=_('ДОХОД') + f' <b>{total} {text}</b>', reply_markup=await buttons.get_button_manage_money())
+    await callback_query.message.answer(text=_('ДОХОД') + f' <b>{total} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
 
     await state.clear()
     await callback_query.answer()
 
 
-@router.message(ExpenditureState.expenditure_input)
-async def expenditure_input_handler(message: types.Message, state: FSMContext):
-    try:
-        total = float(message.text)
-    except (TypeError, ValueError):
-        await message.answer(text=_(FLOAT_NUMBER_ERROR), reply_markup=await buttons.get_button_manage_money())
-    else:
-        await state.set_state(ExpenditureState.category_input)
-        all_categories = await _show_all_categories(message.from_user.username)
-        await message.answer(text=_('Введите категорию'), reply_markup=await buttons.categories_buttons(categories=all_categories))
-        await state.update_data(total=total)
-        await state.update_data(username=message.from_user.username)
-
-
 @router.callback_query(F.data.startswith('category'), ExpenditureState.category_input)
 async def expenditure_category_input_handler(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    total = data.get('total')
-    username = data.get('username')
-    text = callback_query.data.replace('category_', '').lower()
-
-    if not await _own_category(callback_query, state, category=text, username=username):
+    category = await _own_category(callback_query, state)
+    if category is None:
         return
 
-    await _add_expenditure(
-        username=username,
-        category=text,
-        quantity=total
-    )
+    total = Decimal((await state.get_data())['total'])
+    await _add_expenditure(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
 
     await callback_query.message.edit_text(text=_('Новая запись:'))
-    await callback_query.message.answer(text=_('РАСХОД') + f' <b>{total} {text}</b>', reply_markup=await buttons.get_button_manage_money())
+    await callback_query.message.answer(text=_('РАСХОД') + f' <b>{total} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
 
     await state.clear()
     await callback_query.answer()

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import xlsxwriter
 
 from accounting.models import OperationType
@@ -41,7 +43,7 @@ def prepare_data(accounts, lang):
         item = {
             'category': i['category'],
             'date': i['date'],
-            'quantity': i['quantity'],
+            'quantity': float(Decimal(i['quantity'])),  # numeric cell in Excel
             'operation': INCOME[lang] if i['operation_type'] == OperationType.income.value else EXPENDITURE[lang]
         }
 

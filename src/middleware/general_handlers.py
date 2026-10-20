@@ -1,35 +1,21 @@
-from .user import _get_current_user
-from .accounting import _get_category
+from .accounting import _get_category, _find_active_category
 from exception import (
-    UserAlreadyExists,
-    UserNameNotDefined,
     CategoryDoesNotExist,
     CategoryAlreadyExist
 )
 
 
-async def check_user_existence(username: str):
-    response = await _get_current_user(username=username)
-
-    if response:
-        raise UserAlreadyExists
-
-
-async def check_telegram_username(username: str):
-
-    if not username:
-        raise UserNameNotDefined
-
-
-async def category_does_not_exist(category: str, username: str):
-    response = await _get_category(category=category, username=username)
+async def category_does_not_exist(category_id: int, user_id: int):
+    response = await _get_category(category_id=category_id, user_id=user_id)
 
     if not response:
         raise CategoryDoesNotExist
 
+    return response
 
-async def category_already_exist(category: str, username: str):
-    response = await _get_category(category=category, username=username)
+
+async def category_already_exist(category: str, user_id: int):
+    response = await _find_active_category(name=category, user_id=user_id)
 
     if response:
         raise CategoryAlreadyExist

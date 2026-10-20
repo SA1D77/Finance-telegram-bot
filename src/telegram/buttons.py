@@ -57,8 +57,9 @@ async def get_email_remember_buttons():
 
 
 async def categories_buttons(categories):
-    categories = categories.split('\n')
-    rows = [[types.InlineKeyboardButton(text=category, callback_data=f'category_{category}')] for category in categories]
+    # The id keeps callback_data short (Telegram allows 64 bytes) whatever the name is.
+    rows = [[types.InlineKeyboardButton(text=category.name.capitalize(), callback_data=f'category_{category.id}')]
+            for category in categories]
     rows.append([types.InlineKeyboardButton(text=_('⬅️ Отмена'), callback_data='cancel')])
 
     return types.InlineKeyboardMarkup(inline_keyboard=rows)

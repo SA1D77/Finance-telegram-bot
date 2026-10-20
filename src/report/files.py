@@ -25,7 +25,7 @@ def serialize_accounts(accounts: Iterable[Any]) -> List[Dict[str, Any]]:
         {
             'category': account.categories,
             'date': str(account.created_at),
-            'quantity': account.quantity,
+            'quantity': str(account.quantity),  # Decimal as text: exact and JSON-safe
             'operation_type': account.operation_type.value,
         }
         for account in accounts

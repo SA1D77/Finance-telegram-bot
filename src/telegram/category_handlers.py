@@ -1,3 +1,5 @@
+from html import escape
+
 from aiogram import Router, F, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -8,6 +10,7 @@ from telegram.states import (
     AddCategoryState,
     DeleteCategoryState
 )
+from .validation import normalize_category_name, parse_category_id
 from middleware.accounting import (
     _add_new_category,
     _show_all_categories,
@@ -26,12 +29,10 @@ router = Router(name='category')
 
 @router.message(F.text == __('🗂 Категории'), StateFilter(None))
 async def categories_show_handler(message: types.Message):
-    all_categories = await _show_all_categories(message.from_user.username)
-    all_categories = all_categories.split('\n')
-    all_categories = [i for i in all_categories if i != '']
+    all_categories = await _show_all_categories(message.from_user.id)
     msg = str()
-    for i in all_categories:
-        msg += '\n<b>📌 ' + i + '\n</b>'
+    for category in all_categories:
+        msg += '\n<b>📌 ' + escape(category.name.capitalize()) + '\n</b>'
 
     await message.answer(text=_('Вот список текущих категорий:\n') + msg, reply_markup=await buttons.get_button_manage_money())
 
@@ -49,19 +50,24 @@ async def categories_delete_handler(message: types.Message, state: FSMContext):
 
     await state.set_state(DeleteCategoryState.delete_categories_input)
 
-    all_categories = await _show_all_categories(message.from_user.username)
+    all_categories = await _show_all_categories(message.from_user.id)
     await message.answer(text=_('Введите категорию'), reply_markup=await buttons.categories_buttons(categories=all_categories))
-    await state.update_data(username=message.from_user.username)
 
 
 @router.message(AddCategoryState.add_categories_input)
 async def add_categories_input_handler(message: types.Message, state: FSMContext):
+    name = normalize_category_name(message.text)
+    if name is None:
+        # Stay in the same state so the user can simply type another name.
+        await message.answer(text=_('Название категории должно быть от 1 до 64 символов'), reply_markup=await buttons.get_button_cancel())
+        return
+
     try:
-        await category_already_exist(category=message.text.lower(), username=message.from_user.username)
+        await category_already_exist(category=name, user_id=message.from_user.id)
     except CategoryAlreadyExist:
         await message.answer(text=_('Посмотрите внимательно, кажется такая категория уже существует!'), reply_markup=await buttons.get_button_manage_money())
     else:
-        await _add_new_category(category_name=message.text.lower(), username=message.from_user.username)
+        await _add_new_category(category_name=name, user_id=message.from_user.id)
         await message.answer(text=_('Категория успешно добавлена!'), reply_markup=await buttons.get_button_manage_money())
     finally:
         await state.clear()
@@ -69,16 +75,17 @@ async def add_categories_input_handler(message: types.Message, state: FSMContext
 
 @router.callback_query(F.data.startswith('category'), DeleteCategoryState.delete_categories_input)
 async def delete_categories_input_handler(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    username = data.get('username')
-    text = callback_query.data.replace('category_', '').lower()
+    user_id = callback_query.from_user.id
+    category_id = parse_category_id(callback_query.data)
 
     try:
-        await category_does_not_exist(category=text, username=username)
+        if category_id is None:
+            raise CategoryDoesNotExist
+        await category_does_not_exist(category_id=category_id, user_id=user_id)
     except CategoryDoesNotExist:
         await callback_query.message.answer(text=_('Мне кажется или такой категории нет?'), reply_markup=await buttons.get_button_manage_money())
     else:
-        await _delete_category(username=username, category=text)
+        await _delete_category(user_id=user_id, category_id=category_id)
         await callback_query.message.edit_text(text=_('Категория успешно удалена!'))
     finally:
         await state.clear()

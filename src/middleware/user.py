@@ -1,51 +1,46 @@
-from sqlalchemy import insert, select, update
+from typing import Optional
 
+from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from user.models import User
-from .service import _execute_insert_update_delete_command, _execute_select_command
-from redis_manager import redis
+from .service import _execute_insert_update_delete_command, _execute_scalar
 from exception import EmailAlreadyExist
 
 
-async def _add_new_user(username: str):
-    statemant = insert(User).values(username=username)
+async def ensure_user(user_id: int, username: Optional[str]) -> bool:
+    """Creates the user row if needed and keeps the username current. True if created."""
+    statemant = (insert(User)
+                 .values(id=user_id, username=username)
+                 .on_conflict_do_nothing(index_elements=[User.id])
+                 .returning(User.id))
+    created = await _execute_scalar(statemant)
+    if created is not None:
+        return True
+
+    statemant = (update(User)
+                 .where(User.id == user_id, User.username.is_distinct_from(username))
+                 .values(username=username))
+    await _execute_insert_update_delete_command(statemant)
+    return False
+
+
+async def _language_locale(user_id: int, lang: str):
+    statemant = update(User).where(User.id == user_id).values(locale=lang)
     await _execute_insert_update_delete_command(statemant)
 
 
-async def _get_current_user(username: str):
-    statemant = select(User).where(User.username == username)
-
-    return await _execute_select_command(statemant)
+async def _get_user_lang(user_id: int) -> Optional[str]:
+    return await _execute_scalar(select(User.locale).where(User.id == user_id))
 
 
-async def _language_locale(username: str, lang: str):
-    statemant = update(User).where(User.username == username).values(locale=lang)
-    await _execute_insert_update_delete_command(statemant)
-
-    await redis.set(name=username + ':lang', value=lang)
+async def _get_users_email(user_id: int) -> Optional[str]:
+    return await _execute_scalar(select(User.email).where(User.id == user_id))
 
 
-async def _get_user_lang(username: str):
-    response = await redis.get(name=username + ':lang')
-
-    if isinstance(response, bytes):
-        return response.decode("utf-8")
-    return response
-
-
-async def _get_users_email(username: str):
-    response = await redis.get(name=username + ':email')
-
-    return response
-
-
-async def _insert_user_email(username: str, email: str):
-    response = await redis.get(name=username + ':email')
-
-    if response:
+async def _insert_user_email(user_id: int, email: str):
+    if await _get_users_email(user_id=user_id):
         raise EmailAlreadyExist
 
-    statemant = update(User).where(User.username == username).values(email=email)
+    statemant = update(User).where(User.id == user_id).values(email=email)
     await _execute_insert_update_delete_command(statemant)
-
-    await redis.set(name=username + ':email', value=email)

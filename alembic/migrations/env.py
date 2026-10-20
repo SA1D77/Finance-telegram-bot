@@ -7,7 +7,8 @@ from alembic import context
 
 import sys
 
-sys.path = ['', '..', '../..'] + sys.path[1:]
+# Project root for `src.config`, src/ for the models (same import paths as the app).
+sys.path = ['', '..', '../src', '../..'] + sys.path[1:]
 
 from src.config import HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, PORT
 
@@ -31,9 +32,9 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from src.user.models import User
-from src.accounting.models import Base
-target_metadata = [User.metadata, Base.metadata]
+import accounting.models  # noqa: F401  registers the accounting tables on Base
+from user.models import Base
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import List
 from dataclasses import dataclass
 from collections import defaultdict
@@ -12,7 +13,7 @@ from .headers import INCOME, EXPENDITURE
 @dataclass
 class MoneyMovement():
     operation: str
-    quantity: str
+    quantity: Decimal
 
 
 def create_diagram(files, accounts, lang):
@@ -40,6 +41,7 @@ def create_diagram(files, accounts, lang):
 
 
 def drow_diagram(path: str, values: List[float], categories: List[str]):
+    values = [float(value) for value in values]  # matplotlib cannot draw Decimal; fine for a picture
     figure = Figure()
     axes = figure.subplots()
     # An empty period still produces a (blank) image, as before.
@@ -53,13 +55,13 @@ def drow_diagram(path: str, values: List[float], categories: List[str]):
 
 
 def prepare_data(accounts):
-    income_data = defaultdict(lambda: MoneyMovement(operation='income', quantity=0))
-    expenditure_data = defaultdict(lambda: MoneyMovement(operation='expenditure', quantity=0))
+    income_data = defaultdict(lambda: MoneyMovement(operation='income', quantity=Decimal(0)))
+    expenditure_data = defaultdict(lambda: MoneyMovement(operation='expenditure', quantity=Decimal(0)))
 
     for i in accounts:
         if i['operation_type'] == OperationType.income.value:
-            income_data[i['category']].quantity += i['quantity']
+            income_data[i['category']].quantity += Decimal(i['quantity'])
         else:
-            expenditure_data[i['category']].quantity += i['quantity']
+            expenditure_data[i['category']].quantity += Decimal(i['quantity'])
 
     return income_data, expenditure_data

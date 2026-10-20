@@ -528,3 +528,7 @@ msgstr[2] ""
 #: src/telegram/report_handlers.py
 msgid "Похоже, это не адрес почты. Попробуйте ещё раз"
 msgstr ""
+
+#: src/telegram/category_handlers.py
+msgid "Название категории должно быть от 1 до 64 символов"
+msgstr ""

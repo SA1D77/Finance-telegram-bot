@@ -1,4 +1,4 @@
-from sqlalchemy import String, TIMESTAMP, Column, Float
+from sqlalchemy import BigInteger, String, TIMESTAMP, Column
 from sqlalchemy.orm import DeclarativeBase
 
 from datetime import datetime
@@ -11,8 +11,9 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = 'user'
 
-    username = Column(String, nullable=False, unique=True, primary_key=True)
+    # Numeric Telegram user id: unlike the username it never changes.
+    id = Column(BigInteger, primary_key=True, autoincrement=False)
+    username = Column(String, nullable=True)
     registered_at = Column(TIMESTAMP, default=datetime.utcnow)
-    balance = Column(Float, default=0.0)
     email = Column(String, nullable=True, unique=True)
     locale = Column(String, nullable=True)

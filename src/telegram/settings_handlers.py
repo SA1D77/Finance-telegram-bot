@@ -10,8 +10,7 @@ router = Router(name='settings')
 
 
 @router.message(F.text == __('⚙️ Настройки'), StateFilter(None))
-async def settings(message: types.Message, state: FSMContext):
-    await state.update_data(username=message.from_user.username)
+async def settings(message: types.Message):
     await message.answer(text=_('⚙️ Настройки'), reply_markup=await buttons.settings_button())
 
 

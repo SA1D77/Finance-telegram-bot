@@ -1,119 +1,95 @@
-from sqlalchemy import insert, select, update, and_, extract, desc
+from decimal import Decimal
+from typing import List, Optional
+
+from sqlalchemy import case, func, insert, select, update, desc
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from datetime import datetime, timedelta
 
-from user.models import User
 from accounting.models import Categories, Accounting, OperationType
-from .service import _execute_insert_update_delete_command, _execute_select_command
-from redis_manager import redis
+from .service import (
+    _execute_insert_update_delete_command,
+    _execute_scalar,
+    _execute_select_command,
+    _execute_select_rows,
+)
 
 
-async def _add_new_category(category_name: str, username: str):
-    statemant = select(Categories).where(and_(Categories.name == category_name))
+async def _add_new_category(category_name: str, user_id: int):
+    """Creates the category, or re-enables it if it was deleted before."""
+    statemant = (pg_insert(Categories)
+                 .values(name=category_name, user_id=user_id, is_active=True)
+                 .on_conflict_do_update(constraint='uq_categories_user_name', set_={'is_active': True}))
+    await _execute_insert_update_delete_command(statemant)
 
+
+async def _show_all_categories(user_id: int) -> List[Categories]:
+    """Active categories of the user in the order they were created."""
+    statemant = (select(Categories)
+                 .where(Categories.user_id == user_id, Categories.is_active.is_(True))
+                 .order_by(Categories.id))
+    return await _execute_select_command(statemant)
+
+
+async def _get_category(category_id: int, user_id: int) -> Optional[Categories]:
+    """The category only if it is active and belongs to this user."""
+    statemant = select(Categories).where(
+        Categories.id == category_id, Categories.user_id == user_id, Categories.is_active.is_(True)
+    )
     response = await _execute_select_command(statemant)
-
-    if not response:
-        statemant = insert(Categories).values(name=category_name, user_id=username)
-        await _execute_insert_update_delete_command(statemant)
-    else:
-        await _enable_category(category=category_name, username=username)
-
-    categories = await redis.get(name=username + 'categories')
-    if categories:
-        await redis.set(name=username + 'categories', value=categories.decode("utf-8") + f'\n{category_name.capitalize()}')
-    else:
-        await redis.set(name=username + 'categories', value=f'\n{category_name.capitalize()}')
+    return response[0] if response else None
 
 
-async def _enable_category(username: str, category: str):
-    statemant = (update(Categories)
-                 .where(and_(Categories.user_id == username, Categories.name == category, Categories.is_active == False))
-                 .values(is_active=True))
-    await _execute_insert_update_delete_command(statemant)
-
-
-async def _show_all_categories(username: str):
-    response = await redis.get(name=username + 'categories')
-
-    if response is None:
-        statemant = select(Categories).where(and_(Categories.user_id == username, Categories.is_active == True))
-        response = await _execute_select_command(statemant)
-        response = '\n' + ('\n').join(category.name.capitalize() for category in response)
-
-        await redis.set(name=username + 'categories', value=response)
-        return response
-
-    return response.decode("utf-8")
-
-
-async def _get_balance(username: str):
-    response = await redis.get(name=username)
-    if response is None:
-        statemant = select(User).where(User.username == username)
-        response = await _execute_select_command(statemant)
-        response = response[0].balance
-        await redis.set(name=username, value=response)
-
-    return float(response)
-
-
-async def _add_income(username: str, category: str, quantity: float):
-    statemant = insert(Accounting).values(
-        user_id=username,
-        quantity=quantity,
-        categories=category,
-        operation_type=OperationType.income
+async def _find_active_category(name: str, user_id: int) -> Optional[Categories]:
+    statemant = select(Categories).where(
+        Categories.name == name, Categories.user_id == user_id, Categories.is_active.is_(True)
     )
-    await _execute_insert_update_delete_command(statemant)
-
-    statemant = update(User).where(User.username == username).values(balance=User.balance + quantity)
-    await _execute_insert_update_delete_command(statemant)
-
-    current_balance = await redis.get(name=username)
-    await redis.set(name=username, value=float(current_balance) + quantity)
+    response = await _execute_select_command(statemant)
+    return response[0] if response else None
 
 
-async def _add_expenditure(username: str, category: str, quantity: float):
-    statemant = insert(Accounting).values(
-        user_id=username,
-        quantity=quantity,
-        categories=category,
-        operation_type=OperationType.expenditure
-    )
-    await _execute_insert_update_delete_command(statemant)
-
-    statemant = update(User).where(User.username == username).values(balance=User.balance - quantity)
-    await _execute_insert_update_delete_command(statemant)
-
-    current_balance = await redis.get(name=username)
-    await redis.set(name=username, value=float(current_balance) - quantity)
-
-
-async def _delete_category(username: str, category: str):
+async def _delete_category(user_id: int, category_id: int):
+    """Soft delete: operations keep pointing at the category."""
     statemant = (update(Categories)
-                 .where(and_(Categories.user_id == username, Categories.name == category, Categories.is_active == True))
+                 .where(Categories.user_id == user_id, Categories.id == category_id)
                  .values(is_active=False))
     await _execute_insert_update_delete_command(statemant)
 
-    categories = await redis.get(name=username + 'categories')
-    await redis.set(name=username + 'categories', value=categories.decode("utf-8").replace(f'\n{category.capitalize()}', ''))
+
+async def _get_balance(user_id: int) -> Decimal:
+    """Computed from the operations, so it can never drift from them."""
+    signed = case((Accounting.operation_type == OperationType.income, Accounting.quantity), else_=-Accounting.quantity)
+    statemant = select(func.coalesce(func.sum(signed), 0)).where(Accounting.user_id == user_id)
+    return Decimal(await _execute_scalar(statemant))
 
 
-async def _get_category(category: str, username: str):
-    response = await _show_all_categories(username=username)
+async def _add_operation(user_id: int, category_id: int, quantity: Decimal, operation_type: OperationType):
+    statemant = insert(Accounting).values(
+        user_id=user_id,
+        quantity=quantity,
+        category_id=category_id,
+        operation_type=operation_type,
+    )
+    await _execute_insert_update_delete_command(statemant)
 
-    # Exact match on a whole line: a substring check matched "еда" inside "Еда вне дома".
-    if not category or category.capitalize() not in response.split('\n'):
-        return None
 
-    return category
+async def _add_income(user_id: int, category_id: int, quantity: Decimal):
+    await _add_operation(user_id=user_id, category_id=category_id, quantity=quantity, operation_type=OperationType.income)
 
 
-async def _get_accounts(username: str, time: str):
+async def _add_expenditure(user_id: int, category_id: int, quantity: Decimal):
+    await _add_operation(user_id=user_id, category_id=category_id, quantity=quantity, operation_type=OperationType.expenditure)
+
+
+async def _get_accounts(user_id: int, time: str):
+    """Rows with created_at, quantity, operation_type and the category name as `categories`."""
+    statement = (select(Accounting.created_at, Accounting.quantity, Accounting.operation_type,
+                        Categories.name.label('categories'))
+                 .join(Categories, Categories.id == Accounting.category_id)
+                 .where(Accounting.user_id == user_id))
     if time == 'last':
-        statement = select(Accounting).where(Accounting.user_id == username).order_by(desc(Accounting.created_at)).limit(10)
+        statement = statement.order_by(desc(Accounting.created_at)).limit(10)
     else:
         threshold_date = datetime.utcnow() - timedelta(days=int(time))
-        statement = select(Accounting).where(and_(Accounting.user_id == username, extract('epoch', Accounting.created_at) >= threshold_date.timestamp()))
-    return await _execute_select_command(statemant=statement)
+        statement = statement.where(Accounting.created_at >= threshold_date).order_by(Accounting.created_at)
+    return await _execute_select_rows(statement)

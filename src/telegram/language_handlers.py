@@ -18,10 +18,7 @@ async def change_language(callback_query: types.CallbackQuery, state: FSMContext
 
 @router.callback_query(F.data == 'en', LanguageState.language)
 async def language_en(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    username = data.get('username')
-
-    await _language_locale(username=username, lang='en')
+    await _language_locale(user_id=callback_query.from_user.id, lang='en')
     await callback_query.message.edit_text(text=_('Ваш язык был изменен', locale='en'))
     await callback_query.message.answer(text=_('Изменения вступили в силу', locale='en'), reply_markup=await buttons.get_button_manage_money(lang='en'))
     await state.clear()
@@ -29,10 +26,7 @@ async def language_en(callback_query: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'ru', LanguageState.language)
 async def language_ru(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    username = data.get('username')
-
-    await _language_locale(username=username, lang='ru')
+    await _language_locale(user_id=callback_query.from_user.id, lang='ru')
     await callback_query.message.edit_text(text=_('Ваш язык был изменен', locale='ru'))
     await callback_query.message.answer(text=_('Изменения вступили в силу', locale='ru'), reply_markup=await buttons.get_button_manage_money(lang='ru'))
     await state.clear()
@@ -40,10 +34,7 @@ async def language_ru(callback_query: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'be', LanguageState.language)
 async def language_be(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    username = data.get('username')
-
-    await _language_locale(username=username, lang='be')
+    await _language_locale(user_id=callback_query.from_user.id, lang='be')
     await callback_query.message.edit_text(text=_('Ваш язык был изменен', locale='be'))
     await callback_query.message.answer(text=_('Изменения вступили в силу', locale='be'), reply_markup=await buttons.get_button_manage_money(lang='be'))
     await state.clear()
