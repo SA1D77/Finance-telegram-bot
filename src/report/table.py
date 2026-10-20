@@ -1,20 +1,16 @@
 import xlsxwriter
 
-import os
-
-from celery_app import celery
 from accounting.models import OperationType
 from .headers import CATEGORY, DATE, QUANTITY, OPERATION, INCOME, EXPENDITURE
 
 
-@celery.task
-def create_report(username: str, accounts, lang):
+def create_report(path: str, accounts, lang):
     if not lang:
         lang = 'ru'
 
     data = prepare_data(accounts=accounts, lang=lang)
 
-    workbook = xlsxwriter.Workbook(f'{os.path.dirname(__file__)}/reports/{username}_report.xlsx')
+    workbook = xlsxwriter.Workbook(path)
     worksheet = workbook.add_worksheet('Sheet')
     cell_format = workbook.add_format({
         'align': 'center',
@@ -43,10 +39,10 @@ def prepare_data(accounts, lang):
 
     for i in accounts:
         item = {
-            'category': i.categories,
-            'date': str(i.created_at),
-            'quantity': i.quantity,
-            'operation': INCOME[lang] if i.operation_type == OperationType.income else EXPENDITURE[lang]
+            'category': i['category'],
+            'date': i['date'],
+            'quantity': i['quantity'],
+            'operation': INCOME[lang] if i['operation_type'] == OperationType.income.value else EXPENDITURE[lang]
         }
 
         data_for_table.append(item)

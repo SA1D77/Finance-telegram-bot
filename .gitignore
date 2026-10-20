@@ -5,3 +5,4 @@ venv/
 
 **/reports
 **/diagrams
+**/report/generated

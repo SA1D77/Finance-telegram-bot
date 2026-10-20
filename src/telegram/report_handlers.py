@@ -3,7 +3,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
 
-import os
+import asyncio
 
 from telegram import buttons
 from i18n import _, __
@@ -14,13 +14,18 @@ from telegram.states import (
 from middleware.user import _insert_user_email, _get_users_email, _get_user_lang
 from middleware.accounting import _get_accounts
 from exception import EmailAlreadyExist
-from report.table import create_report
-from report.diagram import create_diagram
-from report.email_send import email_report
+from report.email_send import email_report, is_valid_email
+from report.files import build_report_files, remove_report_files, serialize_accounts
 
 router = Router(name='report')
 
-REPORT_DIR = f'{os.path.dirname(__file__)}/../report'
+REPORT_PERIODS = {'1', '30', '365'}
+
+
+async def _report_rows(state: FSMContext, username: str):
+    data = await state.get_data()
+    accounts = await _get_accounts(username=username, time=data.get('time'))
+    return serialize_accounts(accounts)
 
 
 @router.message(Command('report'), StateFilter(None))
@@ -35,10 +40,13 @@ async def report(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     username = data.get('username')
     text = callback_query.data.replace('time_', '').lower()
-    accounts = await _get_accounts(username=username, time=text)
-    lang = await _get_user_lang(username=username)
-    create_report.delay(username=username, accounts=accounts, lang=lang)
-    create_diagram.delay(username=username, accounts=accounts, lang=lang)
+    if text not in REPORT_PERIODS:
+        await callback_query.answer()
+        return
+
+    # Files are built right before sending, so there is no race with a background task
+    # and nothing is left on disk afterwards.
+    await state.update_data(time=text, username=username)
     await state.set_state(ReportState.send_place)
     await callback_query.message.edit_text(text=_('Отчет сформирован!'))
     await callback_query.message.answer(text=_('Выберите место для отправки отчета'), reply_markup=await buttons.get_report_buttons())
@@ -58,13 +66,19 @@ async def report_send_place(message: types.Message, state: FSMContext):
             await state.set_state(ReportState.email)
             await message.answer(text=_('Введите вашу почту'), reply_markup=await buttons.get_button_cancel())
     elif user_input == _('📌 Чат'):
-        await message.answer_document(document=FSInputFile(f'{REPORT_DIR}/reports/{username}_report.xlsx'),
-                                      reply_markup=await buttons.get_button_manage_money())
-        await message.answer_photo(photo=FSInputFile(f'{REPORT_DIR}/diagrams/{username}_general_diagram.png'))
-        await message.answer(text=_('РАСХОД'), reply_markup=await buttons.get_button_manage_money())
-        await message.answer_photo(photo=FSInputFile(f'{REPORT_DIR}/diagrams/{username}_expenditure_diagram.png'))
-        await message.answer(text=_('ДОХОД'), reply_markup=await buttons.get_button_manage_money())
-        await message.answer_photo(photo=FSInputFile(f'{REPORT_DIR}/diagrams/{username}_income_diagram.png'))
+        rows = await _report_rows(state, username)
+        lang = await _get_user_lang(username=username)
+        files = await asyncio.to_thread(build_report_files, rows, lang or 'ru')
+        try:
+            await message.answer_document(document=FSInputFile(files.table, filename='report.xlsx'),
+                                          reply_markup=await buttons.get_button_manage_money())
+            await message.answer_photo(photo=FSInputFile(files.general_diagram))
+            await message.answer(text=_('РАСХОД'), reply_markup=await buttons.get_button_manage_money())
+            await message.answer_photo(photo=FSInputFile(files.expenditure_diagram))
+            await message.answer(text=_('ДОХОД'), reply_markup=await buttons.get_button_manage_money())
+            await message.answer_photo(photo=FSInputFile(files.income_diagram))
+        finally:
+            remove_report_files(files)
         await state.clear()
     else:
         await message.answer(text=_('Отменено'), reply_markup=await buttons.get_button_manage_money())
@@ -73,9 +87,15 @@ async def report_send_place(message: types.Message, state: FSMContext):
 
 @router.message(ReportState.email)
 async def send_report(message: types.Message, state: FSMContext):
-    user_email = message.text
+    user_email = (message.text or '').strip()
+    if not is_valid_email(user_email):
+        await message.answer(text=_('Похоже, это не адрес почты. Попробуйте ещё раз'), reply_markup=await buttons.get_button_cancel())
+        return
+
     await state.set_state(ReportState.remember_email)
-    email_report.delay(username=message.from_user.username, user_email=user_email)
+    rows = await _report_rows(state, message.from_user.username)
+    lang = await _get_user_lang(username=message.from_user.username)
+    email_report.delay(user_email=user_email, accounts=rows, lang=lang)
     await message.answer(text=_('Сохранить почту?'), reply_markup=await buttons.get_email_remember_buttons())
     await state.update_data(email=user_email)
 
@@ -91,8 +111,8 @@ async def remember_email(message: types.Message, state: FSMContext):
             await _insert_user_email(username=message.from_user.username, email=email)
         except EmailAlreadyExist:
             await message.answer(text=_('Похоже такая почта уже существует! Выберите другую'), reply_markup=await buttons.get_button_manage_money())
-
-        await message.answer(text=_('Проверьте свою почту'), reply_markup=await buttons.get_button_manage_money())
+        else:
+            await message.answer(text=_('Проверьте свою почту'), reply_markup=await buttons.get_button_manage_money())
 
     await state.clear()
 
@@ -102,9 +122,11 @@ async def reuse_email(message: types.Message, state: FSMContext):
     user_input = message.text
 
     if user_input == _('⭕️ Да'):
+        rows = await _report_rows(state, message.from_user.username)
         await state.clear()
         email = await _get_users_email(username=message.from_user.username)
-        email_report.delay(username=message.from_user.username, user_email=email.decode('utf-8'))
+        lang = await _get_user_lang(username=message.from_user.username)
+        email_report.delay(user_email=email.decode('utf-8'), accounts=rows, lang=lang)
         await message.answer(text=_('Проверьте свою почту'), reply_markup=await buttons.get_button_manage_money())
     else:
         await state.set_state(ReportState.email)

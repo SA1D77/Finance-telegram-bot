@@ -514,3 +514,7 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+
+#: src/telegram/report_handlers.py
+msgid "Похоже, это не адрес почты. Попробуйте ещё раз"
+msgstr "Падобна, гэта не адрас пошты. Паспрабуйце яшчэ раз"
