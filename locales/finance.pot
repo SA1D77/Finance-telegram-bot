@@ -1119,3 +1119,87 @@ msgstr ""
 #: src/telegram/fallback_handlers.py
 msgid "Не понял. Нажмите кнопку меню или напишите, например: 500 кафе обед"
 msgstr ""
+
+#: new
+msgid "Эта команда доступна только владельцу бота."
+msgstr ""
+
+#: new
+msgid "⭐ Цели накопления"
+msgstr ""
+
+#: new
+msgid "⭐ Цели"
+msgstr ""
+
+#: new
+msgid "💱 Выберите основную валюту. Её можно поменять в настройках."
+msgstr ""
+
+#: new
+msgid "✅ Готово! Валюта: {code}. Категории уже созданы."
+msgstr ""
+
+#: new
+msgid "➕ Новая категория"
+msgstr ""
+
+#: new
+msgid "💱 Валюта"
+msgstr ""
+
+#: new
+msgid "💹 Курсы"
+msgstr ""
+
+#: new
+msgid "💸 Для расходов:"
+msgstr ""
+
+#: new
+msgid "💰 Для доходов:"
+msgstr ""
+
+#: new
+msgid "↔️ Для всего:"
+msgstr ""
+
+#: new
+msgid "💸 Для расходов"
+msgstr ""
+
+#: new
+msgid "💰 Для доходов"
+msgstr ""
+
+#: new
+msgid "↔️ Для всего"
+msgstr ""
+
+#: new
+msgid "Для чего эта категория?"
+msgstr ""
+
+#: new
+msgid "⚙️ Главное меню"
+msgstr ""
+
+#: new
+msgid "💱 Основная валюта: {code}"
+msgstr ""
+
+#: new
+msgid "Новые суммы будут в выбранной валюте. Старые записи не пересчитываются."
+msgstr ""
+
+#: new
+msgid "Сначала выберите валюту в настройках."
+msgstr ""
+
+#: new
+msgid "💹 Курсы на сегодня:"
+msgstr ""
+
+#: new
+msgid "Не удалось получить курсы. Попробуйте позже."
+msgstr ""

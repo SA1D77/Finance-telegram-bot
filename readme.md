@@ -26,7 +26,7 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 🔁 **Recurring operations:** `/recurring` (or the 🔁 button) keeps templates such as a salary or a bill: daily, weekly or monthly (a monthly 31st stays on the last day of shorter months), a start date and an optional reminder 1/3/7 days before. The `beat` container runs a job every 10 minutes; due operations are created (missed days are caught up), each with ↩️ Undo, and reminders offer ⏭ Skip or a new amount. A compare-and-set on the template's next date makes double creation impossible. `FEATURE_RECURRING=0` turns it off.
 
-🐷 **Savings goals:** `/goals` (or the 🐷 button): a name, a target and an optional deadline; progress bar, what is left and how much to put aside per month to make it on time; top up or withdraw from the bot. Money in goals is tracked separately and does not change the balance. `FEATURE_GOALS=0` turns it off.
+⭐ **Savings goals:** `/goals` (or the ⭐ button): a name, a target and an optional deadline; progress bar, what is left and how much to put aside per month to make it on time; top up or withdraw from the bot. Money in goals is tracked separately and does not change the balance. `FEATURE_GOALS=0` turns it off.
 
 📤 **Export and backups:** `/export` sends operations for a period as CSV (UTF-8 with BOM, `;`, opens in Excel) or XLSX, built in memory. Every day at `BACKUP_HOUR` the worker runs `pg_dump` (client 15 in the image), gzips it to `./backups`, keeps the newest `BACKUP_KEEP` and sends the file to you; `/backup` makes one now. Restore: stop the bot and run `restore.bat backups\finance-….sql.gz` (Windows), or `gunzip -c FILE | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`. The dump uses `--clean --if-exists`, so it replaces the current data.
 
@@ -39,6 +39,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 | **Vosk + Tesseract (used)** | free | everything stays on your computer | good for short phrases; receipts depend on photo quality |
 | Cloud speech (OpenAI Whisper API, Google, Yandex SpeechKit) | ~$0.006/min and up | audio sent to the provider | better on noise and accents |
 | Cloud vision / LLM for receipts | ~$0.002–0.01 per photo | receipt image sent to the provider | best at reading crumpled receipts and line items |
+
+🌍 **Public bot, languages and currencies:** with `ACCESS_MODE=public` anyone can use the bot; every query is scoped to the user, so people never see each other's data, and a flood guard drops spam. On the first start a person picks a language (Русский, O'zbekcha, English, Беларуская) and a main currency (so'm, rubles, Belarusian rubles, tenge, dollars, euros; the language's currency is offered first), and gets a ready set of income and expense categories in that language. Amounts read as `1 500 000 сум` / `$1 250.50`, can be typed as `500к`, `200 тыс`, `1.5 млн`, `300 ming`; the balance also shows ≈ $ and €, Settings shows today's rates and changes the currency. Income offers only income categories, expenses only expense ones, with "➕ New category" right in the picker. `/backup` and e-mail reports stay owner-only.
 
 ## How to get started
 

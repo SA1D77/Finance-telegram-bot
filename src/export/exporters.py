@@ -13,11 +13,13 @@ HEADERS = {
     'ru': ['Дата', 'Тип', 'Категория', 'Сумма', 'Комментарий', 'В валюте'],
     'en': ['Date', 'Type', 'Category', 'Amount', 'Comment', 'Original'],
     'be': ['Дата', 'Тып', 'Катэгорыя', 'Сума', 'Каментарый', 'У валюце'],
+    'uz': ['Sana', 'Turi', 'Kategoriya', 'Summa', 'Izoh', 'Valyutada'],
 }
 TYPES = {
     'ru': {OperationType.income: 'Доход', OperationType.expenditure: 'Расход'},
     'en': {OperationType.income: 'Income', OperationType.expenditure: 'Expense'},
     'be': {OperationType.income: 'Даход', OperationType.expenditure: 'Расход'},
+    'uz': {OperationType.income: 'Daromad', OperationType.expenditure: 'Xarajat'},
 }
 
 

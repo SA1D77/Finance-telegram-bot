@@ -2,6 +2,11 @@ import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, List, Optional, Tuple
 
+# Tests must not depend on the real src/.env of this machine (its currency, mode, passwords...).
+import dotenv  # noqa: E402
+
+dotenv.load_dotenv = lambda *args, **kwargs: False
+
 # Config is read at import time, so test values must be set before any project import.
 os.environ.setdefault('TELEGRAM', '123456:TEST-TOKEN')
 os.environ.setdefault('DEBUG', '0')

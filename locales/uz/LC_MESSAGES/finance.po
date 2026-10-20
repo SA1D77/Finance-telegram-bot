@@ -1,0 +1,810 @@
+# Uzbek translations for Finance bot.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the Finance bot project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Finance bot VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-21 00:15+0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: uz\n"
+"Language-Team: uz <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#, python-brace-format
+msgid "📈 Аналитика · {month}"
+msgstr "📈 Tahlil · {month}"
+
+#, python-brace-format
+msgid "💰 Доходы: {amount}"
+msgstr "💰 Daromadlar: {amount}"
+
+#, python-brace-format
+msgid "💸 Расходы: {amount}"
+msgstr "💸 Xarajatlar: {amount}"
+
+#, python-brace-format
+msgid "🏦 Норма сбережений: {rate}%"
+msgstr "🏦 Jamg'arma ulushi: {rate}%"
+
+msgid "🏦 Норма сбережений: нет доходов"
+msgstr "🏦 Jamg'arma ulushi: daromad yo'q"
+
+#, python-brace-format
+msgid "📆 Средний расход в день: {amount}"
+msgstr "📆 Kunlik o'rtacha xarajat: {amount}"
+
+#, python-brace-format
+msgid "🔮 Прогноз расходов на конец месяца: {amount}"
+msgstr "🔮 Oy oxirigacha xarajatlar prognozi: {amount}"
+
+msgid "по общему бюджету"
+msgstr "umumiy byudjet bo'yicha"
+
+msgid "из остатка доходов"
+msgstr "daromad qoldig'idan"
+
+#, python-brace-format
+msgid "✅ Можно тратить в день: {amount} ({basis})"
+msgstr "✅ Kuniga sarflash mumkin: {amount} ({basis})"
+
+#, python-brace-format
+msgid "⚠️ Тратить больше нечего ({basis})"
+msgstr "⚠️ Sarflashga boshqa pul yo'q ({basis})"
+
+#, python-brace-format
+msgid "📊 Сравнение с {month}:"
+msgstr "📊 {month} bilan solishtirish:"
+
+msgid "новая"
+msgstr "yangi"
+
+#, python-brace-format
+msgid "(было {previous}, {diff}, {change})"
+msgstr "(edi {previous}, {diff}, {change})"
+
+#, python-brace-format
+msgid "Итого: {current} (было {previous}, {change})"
+msgstr "Jami: {current} (edi {previous}, {change})"
+
+msgid "🏆 Топ категорий:"
+msgstr "🏆 Eng ko'p kategoriyalar:"
+
+msgid "💥 Самые крупные траты:"
+msgstr "💥 Eng katta xarajatlar:"
+
+msgid "Операций нет."
+msgstr "Amallar yo'q."
+
+msgid "📊 Динамика за 12 месяцев"
+msgstr "📊 12 oylik dinamika"
+
+msgid "📈 Аналитика"
+msgstr "📈 Tahlil"
+
+#, python-brace-format
+msgid "📊 Доходы и расходы: {first} — {last}"
+msgstr "📊 Daromad va xarajatlar: {first} — {last}"
+
+#, python-brace-format
+msgid "🎯 Бюджет на {month}"
+msgstr "🎯 {month} uchun byudjet"
+
+#, python-brace-format
+msgid "До конца месяца дней: {days}"
+msgstr "Oy oxirigacha kunlar: {days}"
+
+msgid "Лимитов пока нет. Задайте общий лимит на месяц или лимит на категорию."
+msgstr "Hozircha limitlar yo'q. Oylik umumiy limit yoki kategoriya limitini belgilang."
+
+#, python-brace-format
+msgid "{spent} из {limit}"
+msgstr "{spent} / {limit}"
+
+#, python-brace-format
+msgid "осталось {left}"
+msgstr "qoldi {left}"
+
+#, python-brace-format
+msgid "перерасход {over}"
+msgstr "ortiqcha sarf {over}"
+
+#, python-brace-format
+msgid "Можно тратить {per_day} в день"
+msgstr "Kuniga {per_day} sarflash mumkin"
+
+msgid "🎯 Общий лимит"
+msgstr "🎯 Umumiy limit"
+
+msgid "➕ Лимит на категорию"
+msgstr "➕ Kategoriya limiti"
+
+msgid "🗑 Убрать лимит"
+msgstr "🗑 Limitni olib tashlash"
+
+msgid "🎯 Бюджет"
+msgstr "🎯 Byudjet"
+
+msgid "⬅️ Назад"
+msgstr "⬅️ Orqaga"
+
+msgid "Общий бюджет"
+msgstr "Umumiy byudjet"
+
+msgid "Мне кажется или такой категории нет?"
+msgstr "Bunday kategoriya yo'qqa o'xshaydi."
+
+#, python-brace-format
+msgid "Введите лимит на месяц для «{name}» (0 — убрать лимит)"
+msgstr "«{name}» uchun oylik limitni kiriting (0 — limitni olib tashlash)"
+
+msgid "Не получилось посчитать сумму. Пример: 500 кафе обед или 1200+350*2 продукты"
+msgstr "Summani hisoblab bo'lmadi. Masalan: 50000 kafe tushlik yoki 120000+35000*2 oziq-ovqat"
+
+msgid "Сохранено"
+msgstr "Saqlandi"
+
+#, python-brace-format
+msgid "🔴 {name}: лимит исчерпан. Потрачено {spent} из {limit} ({percent}%), перерасход {over}."
+msgstr "🔴 {name}: limit tugadi. Sarflandi {spent} / {limit} ({percent}%), ortiqcha sarf {over}."
+
+#, python-brace-format
+msgid "🟡 {name}: потрачено {spent} из {limit} ({percent}%). Осталось {left}."
+msgstr "🟡 {name}: sarflandi {spent} / {limit} ({percent}%). Qoldi {left}."
+
+msgid "В каком формате?"
+msgstr "Qaysi formatda?"
+
+msgid "Сегодня"
+msgstr "Bugun"
+
+msgid "Неделя"
+msgstr "Hafta"
+
+msgid "Месяц"
+msgstr "Oy"
+
+msgid "Год"
+msgstr "Yil"
+
+msgid "Всё время"
+msgstr "Butun davr"
+
+msgid "📅 Свой период"
+msgstr "📅 O'z davrim"
+
+msgid "Экспорт операций. За какой период?"
+msgstr "Amallarni eksport qilish. Qaysi davr uchun?"
+
+msgid "Введите период: 01.09.2026-30.09.2026, 01.09-30.09 или одну дату"
+msgstr "Davrni kiriting: 01.09.2026-30.09.2026, 01.09-30.09 yoki bitta sana"
+
+msgid "Не понял период. Примеры: 01.09.2026-30.09.2026, 01.09-30.09, 05.10.2026"
+msgstr "Davrni tushunmadim. Misollar: 01.09.2026-30.09.2026, 01.09-30.09, 05.10.2026"
+
+msgid "Эта кнопка устарела. Отправьте операцию ещё раз."
+msgstr "Bu tugma eskirgan. Amalni qaytadan yuboring."
+
+#, python-brace-format
+msgid "Операций: {count}"
+msgstr "Amallar: {count}"
+
+msgid "Эта команда доступна только владельцу бота."
+msgstr "Bu buyruq faqat bot egasi uchun."
+
+msgid "Готовлю резервную копию, пришлю файл через минуту."
+msgstr "Zaxira nusxa tayyorlanmoqda, fayl bir daqiqada keladi."
+
+msgid "Не удалось поставить задачу: проверьте, что контейнер celery запущен."
+msgstr "Vazifani qo'yib bo'lmadi: celery konteyneri ishlayotganini tekshiring."
+
+#, python-brace-format
+msgid "{saved} из {target}"
+msgstr "{saved} / {target}"
+
+msgid "Цель достигнута!"
+msgstr "Maqsadga erishildi!"
+
+#, python-brace-format
+msgid "до {date}"
+msgstr "{date} gacha"
+
+#, python-brace-format
+msgid "откладывать {amount} в месяц"
+msgstr "oyiga {amount} ajrating"
+
+msgid "срок прошёл"
+msgstr "muddat o'tdi"
+
+msgid "💰 Пополнить"
+msgstr "💰 To'ldirish"
+
+msgid "➖ Снять"
+msgstr "➖ Yechib olish"
+
+msgid "🎯 Сумма цели"
+msgstr "🎯 Maqsad summasi"
+
+msgid "📅 Срок"
+msgstr "📅 Muddat"
+
+msgid "🗑 Удалить"
+msgstr "🗑 O'chirish"
+
+msgid "⬅️ К списку"
+msgstr "⬅️ Ro'yxatga"
+
+msgid "⭐ Цели накопления"
+msgstr "⭐ Jamg'arma maqsadlari"
+
+msgid "Целей пока нет. Например: отпуск, ноутбук, подушка безопасности."
+msgstr "Hozircha maqsadlar yo'q. Masalan: ta'til, noutbuk, zaxira jamg'arma."
+
+msgid "➕ Новая цель"
+msgstr "➕ Yangi maqsad"
+
+msgid "Цель не найдена."
+msgstr "Maqsad topilmadi."
+
+msgid "⭐ Цели"
+msgstr "⭐ Maqsadlar"
+
+msgid "Как назовём цель?"
+msgstr "Maqsadni qanday nomlaymiz?"
+
+msgid "Название должно быть от 1 до 64 символов"
+msgstr "Nom 1 dan 64 belgigacha bo'lishi kerak"
+
+msgid "Сколько нужно накопить?"
+msgstr "Qancha yig'ish kerak?"
+
+msgid "До какой даты? Например 31.12.2026, или «-», если срока нет"
+msgstr "Qaysi sanagacha? Masalan 31.12.2026 yoki muddat bo'lmasa «-»"
+
+msgid "Нужна будущая дата, например 31.12.2026, или «-»"
+msgstr "Kelajakdagi sana kerak, masalan 31.12.2026 yoki «-»"
+
+msgid "Сколько отложить?"
+msgstr "Qancha ajratamiz?"
+
+msgid "Сколько снять?"
+msgstr "Qancha yechib olamiz?"
+
+#, python-brace-format
+msgid "Можно снять не больше {saved}"
+msgstr "{saved} dan ko'p yechib bo'lmaydi"
+
+msgid "🗑 Да, удалить"
+msgstr "🗑 Ha, o'chirish"
+
+msgid "⬅️ Нет"
+msgstr "⬅️ Yo'q"
+
+msgid "Удалить эту цель?"
+msgstr "Bu maqsad o'chirilsinmi?"
+
+msgid "Удалено"
+msgstr "O'chirildi"
+
+msgid "всё время"
+msgstr "butun davr"
+
+msgid "сегодня"
+msgstr "bugun"
+
+msgid "7 дней"
+msgstr "7 kun"
+
+msgid "этот месяц"
+msgstr "shu oy"
+
+msgid "этот год"
+msgstr "shu yil"
+
+msgid "ДОХОД"
+msgstr "DAROMAD"
+
+msgid "РАСХОД"
+msgstr "XARAJAT"
+
+msgid "💰 Сумма"
+msgstr "💰 Summa"
+
+msgid "🗂 Категория"
+msgstr "🗂 Kategoriya"
+
+msgid "💬 Комментарий"
+msgstr "💬 Izoh"
+
+msgid "📅 Дата"
+msgstr "📅 Sana"
+
+msgid "все"
+msgstr "hammasi"
+
+#, python-brace-format
+msgid "Период: {period}"
+msgstr "Davr: {period}"
+
+#, python-brace-format
+msgid "Категория: {category}"
+msgstr "Kategoriya: {category}"
+
+msgid "📜 История"
+msgstr "📜 Tarix"
+
+#, python-brace-format
+msgid "Страница {page} из {pages}, всего {total}"
+msgstr "{page}-sahifa / {pages}, jami {total}"
+
+msgid "📅 Период"
+msgstr "📅 Davr"
+
+msgid "✖️ Сбросить фильтры"
+msgstr "✖️ Filtrlarni tozalash"
+
+msgid "Операция не найдена: возможно, она уже удалена."
+msgstr "Amal topilmadi: ehtimol, u allaqachon o'chirilgan."
+
+msgid "Все категории"
+msgstr "Barcha kategoriyalar"
+
+msgid "Введите новую сумму (можно с расчётом, например 1200+350)"
+msgstr "Yangi summani kiriting (hisob bilan ham bo'ladi, masalan 120000+35000)"
+
+msgid "Введите комментарий или «-», чтобы его удалить"
+msgstr "Izohni kiriting yoki o'chirish uchun «-» yuboring"
+
+msgid "Введите дату: 21.10, 21.10.2026 14:30, «сегодня» или «вчера»"
+msgstr "Sanani kiriting: 21.10, 21.10.2026 14:30, «bugun» yoki «kecha»"
+
+msgid "Не понял дату. Примеры: 21.10, 21.10.2026 14:30, вчера"
+msgstr "Sanani tushunmadim. Misollar: 21.10, 21.10.2026 14:30, kecha"
+
+msgid "Удалить эту операцию?"
+msgstr "Bu amal o'chirilsinmi?"
+
+msgid "Операция удалена."
+msgstr "Amal o'chirildi."
+
+msgid "Отменено"
+msgstr "Bekor qilindi"
+
+msgid "Последняя операция:"
+msgstr "Oxirgi amal:"
+
+msgid "Распознавание не установлено в этой сборке. Включите его в src/.env и перезапустите start.bat."
+msgstr "Bu yig'ilmada tanib olish o'rnatilmagan. Uni src/.env da yoqing va start.bat ni qayta ishga tushiring."
+
+#, python-brace-format
+msgid "Слишком длинное сообщение: до {seconds} секунд."
+msgstr "Xabar juda uzun: {seconds} soniyagacha."
+
+#, python-brace-format
+msgid "Не разобрал: «{text}». Скажите, например: «пятьсот кафе обед»."
+msgstr "Tushunmadim: «{text}». Masalan, ruscha ayting: «пятьсот кафе обед»."
+
+#, python-brace-format
+msgid "🎙 Распознано: «{text}»"
+msgstr "🎙 Tanildi: «{text}»"
+
+msgid "Фото слишком большое."
+msgstr "Rasm juda katta."
+
+msgid "Не нашёл сумму на чеке. Попробуйте сфотографировать ровнее или введите сумму вручную."
+msgstr "Chekda summani topa olmadim. Tekisroq suratga oling yoki summani qo'lda kiriting."
+
+#, python-brace-format
+msgid "🧾 Итог по чеку: {amount}"
+msgstr "🧾 Chek bo'yicha jami: {amount}"
+
+msgid "💱 Выберите основную валюту. Её можно поменять в настройках."
+msgstr "💱 Asosiy valyutani tanlang. Uni sozlamalarda o'zgartirish mumkin."
+
+#, python-brace-format
+msgid "✅ Готово! Валюта: {code}. Категории уже созданы."
+msgstr "✅ Tayyor! Valyuta: {code}. Kategoriyalar allaqachon yaratildi."
+
+msgid "⬅️ Отмена"
+msgstr "⬅️ Bekor qilish"
+
+msgid "➕ Новая категория"
+msgstr "➕ Yangi kategoriya"
+
+msgid "Новая запись:"
+msgstr "Yangi yozuv:"
+
+#, python-brace-format
+msgid "Не удалось получить курс {code}. Попробуйте позже или укажите сумму в {base}."
+msgstr "{code} kursini olib bo'lmadi. Keyinroq urinib ko'ring yoki summani {base} da kiriting."
+
+msgid "Сохранить?"
+msgstr "Saqlansinmi?"
+
+msgid "✅ Сохранить"
+msgstr "✅ Saqlash"
+
+#, python-brace-format
+msgid "Категория «{name}»?"
+msgstr "Kategoriya «{name}»?"
+
+#, python-brace-format
+msgid "✅ Да, «{name}»"
+msgstr "✅ Ha, «{name}»"
+
+msgid "🗂 Другая категория"
+msgstr "🗂 Boshqa kategoriya"
+
+msgid "Какую категорию вы имели в виду?"
+msgstr "Qaysi kategoriyani nazarda tutdingiz?"
+
+#, python-brace-format
+msgid "Категории «{name}» нет."
+msgstr "«{name}» kategoriyasi yo'q."
+
+#, python-brace-format
+msgid "➕ Создать «{name}»"
+msgstr "➕ «{name}» yaratish"
+
+msgid "Введите категорию"
+msgstr "Kategoriyani tanlang"
+
+msgid "Название категории должно быть от 1 до 64 символов"
+msgstr "Kategoriya nomi 1 dan 64 belgigacha bo'lishi kerak"
+
+msgid "Введите название новой категории"
+msgstr "Yangi kategoriya nomini kiriting"
+
+msgid "🔁 Регулярные операции"
+msgstr "🔁 Muntazam amallar"
+
+msgid "Пока пусто. Добавьте, например, зарплату или оплату интернета."
+msgstr "Hozircha bo'sh. Masalan, maosh yoki internet to'lovini qo'shing."
+
+msgid "➕ Добавить"
+msgstr "➕ Qo'shish"
+
+msgid "⏭ Пропустить"
+msgstr "⏭ O'tkazib yuborish"
+
+msgid "Регулярная операция не найдена."
+msgstr "Muntazam amal topilmadi."
+
+msgid "🔁 Регулярные"
+msgstr "🔁 Muntazam"
+
+msgid "Введите операцию, как обычно: 5000 интернет или +50000 зарплата"
+msgstr "Amalni odatdagidek kiriting: 100000 internet yoki +5 mln maosh"
+
+msgid "Каждый день"
+msgstr "Har kuni"
+
+msgid "Каждую неделю"
+msgstr "Har hafta"
+
+msgid "Каждый месяц"
+msgstr "Har oy"
+
+msgid "Как часто?"
+msgstr "Qanchalik tez-tez?"
+
+msgid "С какой даты? Например: сегодня, завтра, 05.11"
+msgstr "Qaysi sanadan? Masalan: bugun, ertaga, 05.11"
+
+msgid "Нужна сегодняшняя или будущая дата, например 05.11"
+msgstr "Bugungi yoki kelajakdagi sana kerak, masalan 05.11"
+
+msgid "Не напоминать"
+msgstr "Eslatmaslik"
+
+msgid "За 1 день"
+msgstr "1 kun oldin"
+
+msgid "За 3 дня"
+msgstr "3 kun oldin"
+
+msgid "За неделю"
+msgstr "Bir hafta oldin"
+
+msgid "Напоминать заранее?"
+msgstr "Oldindan eslatilsinmi?"
+
+#, python-brace-format
+msgid "Пропущено. Следующая: {date}"
+msgstr "O'tkazib yuborildi. Keyingisi: {date}"
+
+msgid "Удалить эту регулярную операцию?"
+msgstr "Bu muntazam amal o'chirilsinmi?"
+
+#, python-brace-format
+msgid "🔁 Добавлено по расписанию ({date}):"
+msgstr "🔁 Jadval bo'yicha qo'shildi ({date}):"
+
+msgid "↩️ Отменить"
+msgstr "↩️ Bekor qilish"
+
+#, python-brace-format
+msgid "⏰ {date} по расписанию будет добавлено:"
+msgstr "⏰ {date} jadval bo'yicha qo'shiladi:"
+
+msgid "каждый день"
+msgstr "har kuni"
+
+msgid "каждую неделю"
+msgstr "har hafta"
+
+#, python-brace-format
+msgid "каждый месяц, {day}-го"
+msgstr "har oy, {day}-sanada"
+
+#, python-brace-format
+msgid "Следующая: {date}"
+msgstr "Keyingisi: {date}"
+
+#, python-brace-format
+msgid "Напомнить за {days} дн."
+msgstr "{days} kun oldin eslatish"
+
+msgid "➕ Доход"
+msgstr "➕ Daromad"
+
+msgid "➖ Расход"
+msgstr "➖ Xarajat"
+
+msgid "🗂 Категории"
+msgstr "🗂 Kategoriyalar"
+
+msgid "📥 Добавить категорию"
+msgstr "📥 Kategoriya qo'shish"
+
+msgid "📤 Удалить категорию"
+msgstr "📤 Kategoriyani o'chirish"
+
+msgid "📊 Баланс"
+msgstr "📊 Balans"
+
+msgid "⚙️ Настройки"
+msgstr "⚙️ Sozlamalar"
+
+msgid "🕒 Последние 10 операций"
+msgstr "🕒 Oxirgi 10 ta amal"
+
+msgid "Выберите действие"
+msgstr "Amalni tanlang"
+
+msgid "📌 Чат"
+msgstr "📌 Chat"
+
+msgid "📧 Почта"
+msgstr "📧 Pochta"
+
+msgid "⭕️ Да"
+msgstr "⭕️ Ha"
+
+msgid "❌ Нет"
+msgstr "❌ Yo'q"
+
+msgid "🌐 Язык"
+msgstr "🌐 Til"
+
+msgid "💱 Валюта"
+msgstr "💱 Valyuta"
+
+msgid "💹 Курсы"
+msgstr "💹 Kurslar"
+
+msgid "❓ Помощь"
+msgstr "❓ Yordam"
+
+msgid "💸 Для расходов:"
+msgstr "💸 Xarajatlar uchun:"
+
+msgid "💰 Для доходов:"
+msgstr "💰 Daromadlar uchun:"
+
+msgid "↔️ Для всего:"
+msgstr "↔️ Hammasi uchun:"
+
+msgid "Вот список текущих категорий:\n"
+msgstr "Joriy kategoriyalar ro'yxati:\n"
+
+msgid "НОВАЯ КАТЕГОРИЯ:"
+msgstr "YANGI KATEGORIYA:"
+
+msgid "Посмотрите внимательно, кажется такая категория уже существует!"
+msgstr "Diqqat qiling, bunday kategoriya allaqachon bor shekilli!"
+
+msgid "💸 Для расходов"
+msgstr "💸 Xarajatlar uchun"
+
+msgid "💰 Для доходов"
+msgstr "💰 Daromadlar uchun"
+
+msgid "↔️ Для всего"
+msgstr "↔️ Hammasi uchun"
+
+msgid "Для чего эта категория?"
+msgstr "Bu kategoriya nima uchun?"
+
+msgid "Категория успешно добавлена!"
+msgstr "Kategoriya muvaffaqiyatli qo'shildi!"
+
+msgid "⚙️ Главное меню"
+msgstr "⚙️ Bosh menyu"
+
+msgid "Категория успешно удалена!"
+msgstr "Kategoriya muvaffaqiyatli o'chirildi!"
+
+msgid "Гланое меню"
+msgstr "Bosh menyu"
+
+msgid "Сейчас я жду выбор кнопкой выше. Чтобы выйти, нажмите «⬅️ Отмена» или любую кнопку меню."
+msgstr ""
+"Hozir yuqoridagi tugma orqali tanlovni kutyapman. Chiqish uchun «⬅️ Bekor qilish» yoki istalgan menyu tugmasini "
+"bosing."
+
+msgid "Не понял. Нажмите кнопку меню или напишите, например: 500 кафе обед"
+msgstr "Tushunmadim. Menyu tugmasini bosing yoki yozing, masalan: 50000 kafe tushlik"
+
+msgid "Выберите язык"
+msgstr "Tilni tanlang"
+
+msgid "Ваш язык был изменен"
+msgstr "Til o'zgartirildi"
+
+msgid "Изменения вступили в силу"
+msgstr "O'zgarishlar kuchga kirdi"
+
+msgid "ДОХОД:"
+msgstr "DAROMAD:"
+
+msgid "Введите ваш доход"
+msgstr "Daromadingizni kiriting"
+
+msgid "РАСХОД:"
+msgstr "XARAJAT:"
+
+msgid "Введите ваш расход"
+msgstr "Xarajatingizni kiriting"
+
+msgid "ВАШ ТЕКУЩИЙ БАЛАНС:"
+msgstr "JORIY BALANSINGIZ:"
+
+msgid "Выберите место для отправки отчета"
+msgstr "Hisobot qayerga yuborilsin?"
+
+msgid "Выберите промежуток времени"
+msgstr "Davrni tanlang"
+
+msgid "Отчет сформирован!"
+msgstr "Hisobot tayyor!"
+
+msgid "У вас есть сохранненая почта, использовать её?"
+msgstr "Saqlangan pochtangiz bor, undan foydalanamizmi?"
+
+msgid "Введите вашу почту"
+msgstr "Pochtangizni kiriting"
+
+msgid "📊 Динамика по месяцам"
+msgstr "📊 Oylar bo'yicha dinamika"
+
+msgid "Похоже, это не адрес почты. Попробуйте ещё раз"
+msgstr "Bu pochta manziliga o'xshamaydi. Qaytadan urinib ko'ring"
+
+msgid "Сохранить почту?"
+msgstr "Pochta saqlansinmi?"
+
+msgid "Похоже такая почта уже существует! Выберите другую"
+msgstr "Bunday pochta allaqachon bor shekilli! Boshqasini tanlang"
+
+msgid "Проверьте свою почту"
+msgstr "Pochtangizni tekshiring"
+
+#, python-brace-format
+msgid "💱 Основная валюта: {code}"
+msgstr "💱 Asosiy valyuta: {code}"
+
+msgid "Новые суммы будут в выбранной валюте. Старые записи не пересчитываются."
+msgstr "Yangi summalar tanlangan valyutada bo'ladi. Eski yozuvlar qayta hisoblanmaydi."
+
+msgid "Сначала выберите валюту в настройках."
+msgstr "Avval sozlamalarda valyutani tanlang."
+
+msgid "💹 Курсы на сегодня:"
+msgstr "💹 Bugungi kurslar:"
+
+msgid "Не удалось получить курсы. Попробуйте позже."
+msgstr "Kurslarni olib bo'lmadi. Keyinroq urinib ko'ring."
+
+msgid ""
+"Привет! 👋\n"
+"\n"
+"Я рад приветствовать тебя в нашем телеграмм боте по учету финансов 💸 \n"
+"\n"
+"Я здесь, чтобы помочь тебе контролировать свои финансы, планировать бюджет и достигать финансовых целей 📈. С моей "
+"помощью ты сможешь вести учет доходов и расходов, анализировать свои финансовые показатели.\n"
+"\n"
+"Будем работать вместе!😁"
+msgstr ""
+"Salom! 👋\n"
+"\n"
+"Moliyani hisobga olish botiga xush kelibsiz 💸\n"
+"\n"
+"Men daromad va xarajatlarni yozib borish, byudjetni rejalashtirish va moliyaviy maqsadlarga erishishda yordam beraman"
+" 📈.\n"
+"\n"
+"Birga ishlaymiz! 😁"
+
+msgid ""
+"Бот для учета финансов \n"
+"\n"
+" 📌 Бот предоставляет удобные инструменты для учета ваших финансов. Основные команды представлены в виде кнопок внизу "
+"экрана, а также дополнительные команды можно найти в левом верхнем углу поля ввода.\n"
+"\n"
+"Описание команд:\n"
+"Баланс: Показывает ваш текущий баланс.\n"
+"Доход/Расход: Добавляет доход или расход. Вы вводите сумму (используя точку для десятичных чисел), затем выбираете "
+"категорию из вашего списка категорий. Просто следуйте инструкциям, и всё будет готово.\n"
+"Добавление/Удаление категории: Добавляет или удаляет категорию для классификации расходов или доходов.\n"
+"Все категории: Выводит список всех доступных категорий.\n"
+"Настройки: Меняет язык и показывает это описание.\n"
+"\n"
+"❓ Как добавить расход/доход?\n"
+"❗️ Нажмите 'Доход' или 'Расход', в зависимости от того, что вы хотите добавить.\n"
+"Введите сумму, используя точку для десятичных чисел.\n"
+"Выберите соответствующую категорию из вашего списка категорий.\n"
+"Готово! Ваш расход или доход добавлен.\n"
+"\n"
+"❓ Генерация отчета:\n"
+"❗️ При вводе команды /report вам будет предложено отправить отчет в чат или на вашу почту. Также есть опция "
+"сохранения вашей почты для удобства.\n"
+"\n"
+"С помощью этого бота вы сможете легко отслеживать свои финансы и принимать более осознанные финансовые решения."
+msgstr ""
+"Moliyani hisobga olish boti\n"
+"\n"
+"📌 Asosiy buyruqlar ekranning pastidagi tugmalarda, qo'shimcha buyruqlar esa kiritish maydonining chap yuqori "
+"burchagidagi menyuda.\n"
+"\n"
+"Balans: joriy balansingizni ko'rsatadi.\n"
+"Daromad/Xarajat: summani kiriting, keyin kategoriyani tanlang.\n"
+"Kategoriya qo'shish/o'chirish: daromad va xarajatlarni guruhlash uchun.\n"
+"Kategoriyalar: barcha kategoriyalar ro'yxati.\n"
+"Sozlamalar: til, valyuta, kurslar va ushbu yordam.\n"
+"\n"
+"❓ Hisobot:\n"
+"❗️ /report buyrug'i jadval va diagrammalarni chatga yuboradi.\n"
+"\n"
+"Bu bot bilan moliyangizni oson kuzatib, ongli qarorlar qabul qilasiz."
+
+msgid ""
+"Хмм 🧐, с вашими числами что-то не так. Проверьте их правильность 🫣.\n"
+"Напоминаю, что дробные числа пишутся через точку."
+msgstr ""
+"Hmm 🧐, summa bilan nimadir noto'g'ri. Tekshirib ko'ring 🫣.\n"
+"Masalan: 50000, 1.5 mln, 500k"
+
+msgid ""
+"⚡ Быстрый ввод: напишите сумму и категорию одним сообщением.\n"
+"\n"
+"<code>500 кафе обед</code> — расход с комментарием\n"
+"<code>+50000 зарплата</code> — доход\n"
+"<code>1200+350*2 продукты</code> — с калькулятором\n"
+"\n"
+"Если категории нет или она похожа на другую, бот переспросит."
+msgstr ""
+"⚡ Tezkor kiritish: summa va kategoriyani bitta xabarda yozing.\n"
+"\n"
+"<code>50000 kafe tushlik</code> — izohli xarajat\n"
+"<code>+5 mln maosh</code> — daromad\n"
+"<code>120000+35000*2 oziq-ovqat</code> — kalkulyator bilan\n"
+"\n"
+"Kategoriya bo'lmasa yoki boshqasiga o'xshasa, bot so'raydi."
+

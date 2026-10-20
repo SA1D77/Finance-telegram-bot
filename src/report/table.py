@@ -3,12 +3,11 @@ from decimal import Decimal
 import xlsxwriter
 
 from accounting.models import OperationType
-from .headers import CATEGORY, COMMENT, DATE, QUANTITY, OPERATION, INCOME, EXPENDITURE
+from .headers import lang_or_default, CATEGORY, COMMENT, DATE, QUANTITY, OPERATION, INCOME, EXPENDITURE
 
 
 def create_report(path: str, accounts, lang):
-    if not lang:
-        lang = 'ru'
+    lang = lang_or_default(lang)
 
     data = prepare_data(accounts=accounts, lang=lang)
 

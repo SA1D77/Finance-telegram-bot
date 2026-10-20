@@ -1146,3 +1146,87 @@ msgstr "I am waiting for a choice with the buttons above. To leave, press \"⬅�
 #: src/telegram/fallback_handlers.py
 msgid "Не понял. Нажмите кнопку меню или напишите, например: 500 кафе обед"
 msgstr "I didn't get that. Press a menu button or type, for example: 500 cafe lunch"
+
+#: new
+msgid "Эта команда доступна только владельцу бота."
+msgstr "This command is only for the bot owner."
+
+#: new
+msgid "⭐ Цели накопления"
+msgstr "⭐ Savings goals"
+
+#: new
+msgid "⭐ Цели"
+msgstr "⭐ Goals"
+
+#: new
+msgid "💱 Выберите основную валюту. Её можно поменять в настройках."
+msgstr "💱 Choose your main currency. You can change it in the settings."
+
+#: new
+msgid "✅ Готово! Валюта: {code}. Категории уже созданы."
+msgstr "✅ Done! Currency: {code}. Categories are ready."
+
+#: new
+msgid "➕ Новая категория"
+msgstr "➕ New category"
+
+#: new
+msgid "💱 Валюта"
+msgstr "💱 Currency"
+
+#: new
+msgid "💹 Курсы"
+msgstr "💹 Rates"
+
+#: new
+msgid "💸 Для расходов:"
+msgstr "💸 For expenses:"
+
+#: new
+msgid "💰 Для доходов:"
+msgstr "💰 For income:"
+
+#: new
+msgid "↔️ Для всего:"
+msgstr "↔️ For both:"
+
+#: new
+msgid "💸 Для расходов"
+msgstr "💸 For expenses"
+
+#: new
+msgid "💰 Для доходов"
+msgstr "💰 For income"
+
+#: new
+msgid "↔️ Для всего"
+msgstr "↔️ For both"
+
+#: new
+msgid "Для чего эта категория?"
+msgstr "What is this category for?"
+
+#: new
+msgid "⚙️ Главное меню"
+msgstr "⚙️ Main menu"
+
+#: new
+msgid "💱 Основная валюта: {code}"
+msgstr "💱 Main currency: {code}"
+
+#: new
+msgid "Новые суммы будут в выбранной валюте. Старые записи не пересчитываются."
+msgstr "New amounts will be in the chosen currency. Old records are not converted."
+
+#: new
+msgid "Сначала выберите валюту в настройках."
+msgstr "Choose a currency in the settings first."
+
+#: new
+msgid "💹 Курсы на сегодня:"
+msgstr "💹 Today's rates:"
+
+#: new
+msgid "Не удалось получить курсы. Попробуйте позже."
+msgstr "Could not get the rates. Try later."

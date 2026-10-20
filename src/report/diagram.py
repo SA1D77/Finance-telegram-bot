@@ -7,7 +7,7 @@ from collections import defaultdict
 from matplotlib.figure import Figure
 
 from accounting.models import OperationType
-from .headers import INCOME, EXPENDITURE
+from .headers import lang_or_default, INCOME, EXPENDITURE
 
 
 @dataclass
@@ -17,8 +17,7 @@ class MoneyMovement():
 
 
 def create_diagram(files, accounts, lang):
-    if not lang:
-        lang = 'ru'
+    lang = lang_or_default(lang)
     income_data, expenditure_data = prepare_data(accounts=accounts)
 
     income_categories = [i for i in income_data.keys()]
