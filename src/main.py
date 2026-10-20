@@ -36,6 +36,7 @@ async def main() -> None:
         BotCommand(command='undo', description='Отменить последнюю операцию'),
         BotCommand(command='budget', description='Бюджет и лимиты на месяц'),
         BotCommand(command='stats', description='Аналитика за месяц'),
+        BotCommand(command='recurring', description='Регулярные операции'),
         BotCommand(command='report', description='Отчёт за период'),
     ])
 

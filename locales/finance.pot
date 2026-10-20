@@ -851,3 +851,115 @@ msgstr ""
 #: src/telegram/report_handlers.py
 msgid "📊 Динамика по месяцам"
 msgstr ""
+
+#: src/recurring/texts.py
+msgid "каждый день"
+msgstr ""
+
+#: src/recurring/texts.py
+msgid "каждую неделю"
+msgstr ""
+
+#: src/recurring/texts.py
+msgid "каждый месяц, {day}-го"
+msgstr ""
+
+#: src/recurring/texts.py
+msgid "Следующая: {date}"
+msgstr ""
+
+#: src/recurring/texts.py
+msgid "Напомнить за {days} дн."
+msgstr ""
+
+#: src/recurring/tasks.py
+msgid "🔁 Добавлено по расписанию ({date}):"
+msgstr ""
+
+#: src/recurring/tasks.py
+msgid "⏰ {date} по расписанию будет добавлено:"
+msgstr ""
+
+#: src/recurring/tasks.py
+msgid "⏭ Пропустить"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "🔁 Регулярные операции"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Пока пусто. Добавьте, например, зарплату или оплату интернета."
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "➕ Добавить"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Регулярная операция не найдена."
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "🔁 Регулярные"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Введите операцию, как обычно: 5000 интернет или +50000 зарплата"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Как часто?"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Каждый день"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Каждую неделю"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Каждый месяц"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "С какой даты? Например: сегодня, завтра, 05.11"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Нужна сегодняшняя или будущая дата, например 05.11"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Не напоминать"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "За 1 день"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "За 3 дня"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "За неделю"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Напоминать заранее?"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Пропущено. Следующая: {date}"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Удалить эту регулярную операцию?"
+msgstr ""
+
+#: src/recurring/handlers.py
+msgid "Удалено"
+msgstr ""

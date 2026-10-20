@@ -878,3 +878,115 @@ msgstr "I didn't understand the period. Examples: 01.09.2026-30.09.2026, 01.09-3
 #: src/telegram/report_handlers.py
 msgid "📊 Динамика по месяцам"
 msgstr "📊 Monthly trend"
+
+#: src/recurring/texts.py
+msgid "каждый день"
+msgstr "every day"
+
+#: src/recurring/texts.py
+msgid "каждую неделю"
+msgstr "every week"
+
+#: src/recurring/texts.py
+msgid "каждый месяц, {day}-го"
+msgstr "every month on day {day}"
+
+#: src/recurring/texts.py
+msgid "Следующая: {date}"
+msgstr "Next: {date}"
+
+#: src/recurring/texts.py
+msgid "Напомнить за {days} дн."
+msgstr "Remind {days} day(s) before"
+
+#: src/recurring/tasks.py
+msgid "🔁 Добавлено по расписанию ({date}):"
+msgstr "🔁 Added on schedule ({date}):"
+
+#: src/recurring/tasks.py
+msgid "⏰ {date} по расписанию будет добавлено:"
+msgstr "⏰ On {date} this will be added on schedule:"
+
+#: src/recurring/tasks.py
+msgid "⏭ Пропустить"
+msgstr "⏭ Skip"
+
+#: src/recurring/handlers.py
+msgid "🔁 Регулярные операции"
+msgstr "🔁 Recurring operations"
+
+#: src/recurring/handlers.py
+msgid "Пока пусто. Добавьте, например, зарплату или оплату интернета."
+msgstr "Nothing yet. Add, for example, your salary or the internet bill."
+
+#: src/recurring/handlers.py
+msgid "➕ Добавить"
+msgstr "➕ Add"
+
+#: src/recurring/handlers.py
+msgid "Регулярная операция не найдена."
+msgstr "Recurring operation not found."
+
+#: src/telegram/buttons.py
+msgid "🔁 Регулярные"
+msgstr "🔁 Recurring"
+
+#: src/recurring/handlers.py
+msgid "Введите операцию, как обычно: 5000 интернет или +50000 зарплата"
+msgstr "Type the operation as usual: 5000 internet or +50000 salary"
+
+#: src/recurring/handlers.py
+msgid "Как часто?"
+msgstr "How often?"
+
+#: src/recurring/handlers.py
+msgid "Каждый день"
+msgstr "Every day"
+
+#: src/recurring/handlers.py
+msgid "Каждую неделю"
+msgstr "Every week"
+
+#: src/recurring/handlers.py
+msgid "Каждый месяц"
+msgstr "Every month"
+
+#: src/recurring/handlers.py
+msgid "С какой даты? Например: сегодня, завтра, 05.11"
+msgstr "Starting when? For example: today, tomorrow, 05.11"
+
+#: src/recurring/handlers.py
+msgid "Нужна сегодняшняя или будущая дата, например 05.11"
+msgstr "Today or a future date is needed, e.g. 05.11"
+
+#: src/recurring/handlers.py
+msgid "Не напоминать"
+msgstr "Don't remind"
+
+#: src/recurring/handlers.py
+msgid "За 1 день"
+msgstr "1 day before"
+
+#: src/recurring/handlers.py
+msgid "За 3 дня"
+msgstr "3 days before"
+
+#: src/recurring/handlers.py
+msgid "За неделю"
+msgstr "A week before"
+
+#: src/recurring/handlers.py
+msgid "Напоминать заранее?"
+msgstr "Remind in advance?"
+
+#: src/recurring/handlers.py
+msgid "Пропущено. Следующая: {date}"
+msgstr "Skipped. Next: {date}"
+
+#: src/recurring/handlers.py
+msgid "Удалить эту регулярную операцию?"
+msgstr "Delete this recurring operation?"
+
+#: src/recurring/handlers.py
+msgid "Удалено"
+msgstr "Deleted"

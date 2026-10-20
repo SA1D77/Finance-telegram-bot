@@ -34,6 +34,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 import accounting.models  # noqa: F401  registers the accounting tables on Base
 import budgets.models  # noqa: F401
+import recurring.models  # noqa: F401
 from user.models import Base
 target_metadata = Base.metadata
 

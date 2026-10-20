@@ -369,3 +369,74 @@ async def test_report_rows_between(db):
     assert [r.quantity for r in rows] == [Decimal('15.00')]
     assert len(await accounting._get_accounts_between(OWNER, None, None)) == 3
     assert len(await accounting._get_accounts_between(OTHER, None, None)) == 0
+
+
+async def _recurring_setup(next_date, remind_days=0, frequency='daily'):
+    from recurring import service as recurring
+    await user.ensure_user(OWNER, None)
+    await accounting._add_new_category('интернет', OWNER)
+    category = (await accounting._show_all_categories(OWNER))[0].id
+    template_id = await recurring.create(OWNER, category, accounting.OperationType.expenditure, Decimal('5000.00'), 'тариф',
+                                         frequency, next_date.day, next_date, remind_days)
+    return recurring, template_id
+
+
+async def test_recurring_run_creates_due_operations_once(db):
+    from datetime import date, datetime
+    recurring, template_id = await _recurring_setup(date(2026, 10, 20))
+
+    created = await recurring.run_due(date(2026, 10, 22))
+    again = await recurring.run_due(date(2026, 10, 22))
+
+    assert [c.day for c in created] == [date(2026, 10, 20), date(2026, 10, 21), date(2026, 10, 22)]
+    assert again == []
+    rows = await accounting._get_accounts_between(OWNER, None, None)
+    assert len(rows) == 3 and {r.comment for r in rows} == {'тариф'}
+    assert rows[0].created_at == datetime(2026, 10, 20, 7, 0)  # local noon in Tashkent
+    assert (await recurring.get(OWNER, template_id)).next_date == date(2026, 10, 23)
+    assert await accounting._get_balance(OWNER) == Decimal('-15000.00')
+
+
+async def test_recurring_reminder_once_and_skip(db):
+    from datetime import date
+    recurring, template_id = await _recurring_setup(date(2026, 11, 5), remind_days=3, frequency='monthly')
+
+    assert await recurring.reminders_due(date(2026, 11, 1)) == []
+    assert [r.id for r in await recurring.reminders_due(date(2026, 11, 2))] == [template_id]
+    assert await recurring.reminders_due(date(2026, 11, 3)) == []
+
+    assert await recurring.skip_next(OWNER, template_id) == date(2026, 12, 5)
+    assert await recurring.skip_next(OTHER, template_id) is None
+    assert await recurring.run_due(date(2026, 11, 5)) == []          # skipped occurrence is not created
+    assert [r.id for r in await recurring.reminders_due(date(2026, 12, 3))] == [template_id]
+
+
+async def test_recurring_edit_and_remove_scoped(db):
+    from datetime import date
+    recurring, template_id = await _recurring_setup(date(2026, 11, 5))
+
+    assert await recurring.update_fields(OTHER, template_id, amount=Decimal('1')) is False
+    assert await recurring.update_fields(OWNER, template_id, amount=Decimal('6000'), next_date=date(2026, 11, 7)) is True
+    row = await recurring.get(OWNER, template_id)
+    assert (row.amount, row.next_date, row.category) == (Decimal('6000.00'), date(2026, 11, 7), 'интернет')
+    with pytest.raises(ValueError):
+        await recurring.update_fields(OWNER, template_id, frequency='daily')
+    assert await recurring.remove(OTHER, template_id) is False
+    assert await recurring.remove(OWNER, template_id) is True
+
+
+async def test_recurring_worker_sends_messages(db):
+    from datetime import date
+    from recurring import tasks
+    recurring, template_id = await _recurring_setup(date(2026, 10, 22))
+    sent = []
+
+    class FakeBot:
+        async def send_message(self, chat_id, text, reply_markup=None):
+            sent.append((chat_id, text, reply_markup))
+
+    assert await tasks.run(bot=FakeBot(), today=date(2026, 10, 22)) == 1
+    chat_id, text, markup = sent[0]
+    assert chat_id == OWNER and 'Добавлено по расписанию (22.10.2026)' in text and '5000.00 интернет' in text
+    assert markup.inline_keyboard[0][0].callback_data.startswith('h:undo:')
+    assert await tasks.run(bot=FakeBot(), today=date(2026, 10, 22)) == 0

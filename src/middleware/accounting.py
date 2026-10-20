@@ -66,15 +66,15 @@ async def _get_balance(user_id: int) -> Decimal:
 
 
 async def _add_operation(user_id: int, category_id: int, quantity: Decimal, operation_type: OperationType,
-                         comment: Optional[str] = None) -> uuid.UUID:
-    """Returns the new operation id (used by the undo button)."""
+                         comment: Optional[str] = None, created_at: Optional[datetime] = None) -> uuid.UUID:
+    """Returns the new operation id (used by the undo button). created_at is naive UTC, default now."""
     statemant = insert(Accounting).values(
         user_id=user_id,
         quantity=quantity,
         category_id=category_id,
         operation_type=operation_type,
         comment=comment,
-        created_at=utc_now(),
+        created_at=created_at or utc_now(),
     ).returning(Accounting.id)
     return await _execute_scalar(statemant)
 

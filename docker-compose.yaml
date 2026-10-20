@@ -59,6 +59,23 @@ services:
     networks:
       - aiogram
 
+  # Celery beat: starts periodic jobs (recurring operations, backups); the worker runs them.
+  beat:
+    build:
+      context: .
+    image: aiogram
+    container_name: aiogram_beat
+    restart: unless-stopped
+    command: sh -c "cd src && celery -A celery_app:celery beat --loglevel=INFO --schedule /tmp/celerybeat-schedule"
+    env_file:
+      - ./src/.env
+    volumes:
+      - .:/aiogram
+    depends_on:
+      - redis
+    networks:
+      - aiogram
+
   # Optional DB admin UI, off by default: docker compose --profile tools up -d pgadmin
   # Then open http://127.0.0.1:5050 (or through an SSH tunnel on a server).
   pgadmin:

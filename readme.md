@@ -24,6 +24,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 📈 **Analytics:** `/stats` (or the 📈 button) shows a month at a time: income, expenses, savings rate, average spending per day, a forecast for the month end and how much you can spend per day (by the overall budget if set, otherwise from income left); a per-category comparison with the previous month (amount and %), top categories and the largest expenses; ◀️ ▶️ switch months and a button sends a 12-month income/expense chart. `/report` now offers today / week / month / year (calendar periods in `TIMEZONE`) or a custom range like `01.09.2026-30.09.2026`; a report spanning several months also gets a monthly chart. `FEATURE_ANALYTICS=0` hides `/stats`.
 
+🔁 **Recurring operations:** `/recurring` (or the 🔁 button) keeps templates such as a salary or a bill: daily, weekly or monthly (a monthly 31st stays on the last day of shorter months), a start date and an optional reminder 1/3/7 days before. The `beat` container runs a job every 10 minutes; due operations are created (missed days are caught up), each with ↩️ Undo, and reminders offer ⏭ Skip or a new amount. A compare-and-set on the template's next date makes double creation impossible. `FEATURE_RECURRING=0` turns it off.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.

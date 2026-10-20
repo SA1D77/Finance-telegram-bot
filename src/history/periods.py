@@ -67,7 +67,7 @@ _RANGE_SPLIT_RE = re.compile(r'\s*[-–—]\s*')
 MAX_RANGE_DAYS = 3660  # about ten years
 
 
-def _parse_day(text: str, now: datetime) -> Optional[date]:
+def parse_day(text: str, now: datetime) -> Optional[date]:
     match = _DAY_RE.match(text)
     if match is None:
         return None
@@ -87,7 +87,7 @@ def parse_date_range(text: Optional[str], now: Optional[datetime] = None) -> Opt
     parts = _RANGE_SPLIT_RE.split(text.strip())
     if len(parts) not in (1, 2):
         return None
-    days = [_parse_day(part, now) for part in parts]
+    days = [parse_day(part, now) for part in parts]
     if None in days:
         return None
     start, end = days[0], days[-1]

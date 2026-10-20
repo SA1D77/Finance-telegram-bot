@@ -3,7 +3,7 @@ from typing import Optional
 
 from aiogram import types
 
-from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY
+from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY, FEATURE_RECURRING
 from i18n import _
 
 
@@ -26,11 +26,18 @@ async def get_button_manage_money(lang=None):
     if FEATURE_ANALYTICS:
         last_row.append(types.KeyboardButton(text=_('📈 Аналитика', locale=lang)))
 
+    extra_row = []
+    if FEATURE_RECURRING:
+        extra_row.append(types.KeyboardButton(text=_('🔁 Регулярные', locale=lang)))
+
+    rows = [first_row,
+            [button_income, button_expense],
+            [button_show_categories, button_add_category, button_delete_category],
+            last_row]
+    if extra_row:
+        rows.append(extra_row)
     button_manager = types.ReplyKeyboardMarkup(
-        keyboard=[first_row,
-                  [button_income, button_expense],
-                  [button_show_categories, button_add_category, button_delete_category],
-                  last_row],
+        keyboard=rows,
         resize_keyboard=True,
         input_field_placeholder=_('Выберите действие', locale=lang)
     )
