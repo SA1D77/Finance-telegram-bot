@@ -2,6 +2,7 @@ from aiogram import Dispatcher
 from aiogram.fsm.storage.base import BaseStorage
 
 from i18n import setup_middleware
+from middleware.owner import OwnerOnlyMiddleware
 from telegram import (
     category_handlers,
     common_handlers,
@@ -12,8 +13,10 @@ from telegram import (
 )
 
 
-def create_dispatcher(storage: BaseStorage) -> Dispatcher:
+def create_dispatcher(storage: BaseStorage, owner_id: int) -> Dispatcher:
     dp = Dispatcher(storage=storage)
+    # Runs before i18n and routing: other users are ignored without a reply.
+    dp.update.outer_middleware(OwnerOnlyMiddleware(owner_id=owner_id))
     setup_middleware(dp)
 
     # Same order the handler modules were imported in under aiogram 2,

@@ -1,10 +1,23 @@
 import os
+from typing import Optional
+from urllib.parse import quote
+
 from dotenv import load_dotenv
 
 
 load_dotenv()
 
+
+def _parse_owner_id(value: Optional[str]) -> Optional[int]:
+    """Numeric Telegram id of the only user allowed to use the bot."""
+    if value is None or not value.strip().isdigit():
+        return None
+    return int(value.strip())
+
+
 TELEGRAM = os.getenv('TELEGRAM')
+
+OWNER_ID = _parse_owner_id(os.environ.get('OWNER_ID'))
 
 HOST = os.environ.get('HOST')
 POSTGRES_DB = os.environ.get('POSTGRES_DB')
@@ -17,8 +30,9 @@ DB_URL = os.environ.get('DB_URL')
 
 REDIS_HOST = os.environ.get('REDIS_HOST')
 REDIS_PORT = os.environ.get('REDIS_PORT')
+REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD') or None
 
-DEBUG = int(os.environ.get('DEBUG'))
+DEBUG = int(os.environ.get('DEBUG', '0'))
 
 SMTP_HOST = os.environ.get('SMTP_HOST')
 SMTP_PORT = os.environ.get('SMTP_PORT')
@@ -28,3 +42,8 @@ SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
 
 CELERY_HOST = os.environ.get('CELERY_HOST')
 CELERY_PORT = os.environ.get('CELERY_PORT')
+
+
+def celery_broker_url() -> str:
+    auth = f':{quote(REDIS_PASSWORD, safe="")}@' if REDIS_PASSWORD else ''
+    return f'redis://{auth}{CELERY_HOST}:{CELERY_PORT}'
