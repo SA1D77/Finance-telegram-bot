@@ -37,39 +37,24 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 ### Environment
 
-In the `src` folder, create the file 📜 `.env` and fill it in according to the template:
+Copy 📜 `src/.env.example` to `src/.env` and fill it in. Every variable is described there; there are no default passwords.
 
-```dosini
-TELEGRAM=439854958493:rkjgnrngrjgnrjgjrbgjrrjrJJe # Your bot token
+- `OWNER_ID` is required: your numeric Telegram id (ask @userinfobot). The bot answers only this user; updates from anyone else are dropped without a reply. Without it the bot refuses to start.
+- `REDIS_PASSWORD` is required by docker compose. Redis db 3 is the cache, db 4 keeps FSM dialog states, the Celery broker uses the db from `CELERY_PORT`.
+- Generate passwords with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
 
-HOST=db # The host of your database (locally localhost, and db in docker)
-POSTGRES_DB=postgres # Name of your database
-POSTGRES_USER=postgres # Password of your database
-POSTGRES_PASSWORD=postgres # Username from your database
-PORT=5432 # Database port
+> If the Postgres volume already exists, changing `POSTGRES_PASSWORD` in `.env` does not change the database password. Change it inside the database (`ALTER USER ... PASSWORD ...`) and then update `.env` and `DB_URL`.
 
-DB_URL=postgresql+asyncpg://postgres:postgres@db:5432/postgres # Url of the main database
+### Security notes
 
-DEBUG=0 # If 0, then DEBUG mode is disabled
-
-REDIS_HOST=redis # The host of your redis database (locally localhost, and redis in docker)
-REDIS_PORT=6379 # Redis port (db 3 is the cache, db 4 keeps FSM dialog states)
-
-SMTP_HOST=smtp.gmail.com # The host of your smtp client
-SMTP_PORT=465  # The port of your smtp client
-
-SMTP_USER=example@gmail.com # Your mail for sending emails
-SMTP_PASSWORD=jkrdbglrbgriugb # Email password
-
-CELERY_HOST=redis # Celery host for broker(locally localhost, and redis in docker)
-CELERY_PORT=6379/1 # Celery port
-```
+- Postgres and Redis publish no ports; they are reachable only inside the compose network.
+- pgAdmin is optional: `docker compose --profile tools up -d pgadmin`, then open `http://127.0.0.1:5050` (on a server use an SSH tunnel: `ssh -L 5050:127.0.0.1:5050 user@server`).
+- Report files are created in `src/report/generated/<uuid>/` and deleted right after sending.
+- Celery accepts JSON only; SQL statements are not logged.
 
 ### Preparation
 
-In the `src` folder, create the `reports` and `diagrams` folders for reports.
-
-And run this command:
+For a local launch (outside docker) run this command:
 
 ```sh
 export PYTHONPATH=path_to_project:$PYTHONPATH
@@ -107,7 +92,7 @@ celery -A celery_app:celery worker --loglevel=INFO
 At the root of the project:
 
 ```docker
-docker compose up
+docker compose up -d --build
 ```
 
 ### Tests

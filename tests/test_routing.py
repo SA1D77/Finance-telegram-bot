@@ -1,4 +1,5 @@
 import i18n
+from middleware import accounting
 from telegram import main_handlers, common_handlers  # noqa: F401
 from telegram.states import IncomeState, ExpenditureState, AddCategoryState
 
@@ -22,6 +23,7 @@ async def test_full_income_flow_saves_operation(harness, monkeypatch):
         saved.update(username=username, category=category, quantity=quantity)
 
     monkeypatch.setattr(main_handlers, '_show_all_categories', fake_categories)
+    monkeypatch.setattr(accounting, '_show_all_categories', fake_categories)
     monkeypatch.setattr(main_handlers, '_add_income', fake_add_income)
 
     await harness.feed(make_message('➕ Доход'))

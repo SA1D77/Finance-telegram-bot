@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Any, AsyncGenerator, List, Optional
+from typing import Any, AsyncGenerator, List, Optional, Tuple
 
 # Config is read at import time, so test values must be set before any project import.
 os.environ.setdefault('TELEGRAM', '123456:TEST-TOKEN')
@@ -10,6 +10,7 @@ os.environ.setdefault('REDIS_HOST', 'localhost')
 os.environ.setdefault('REDIS_PORT', '6379')
 os.environ.setdefault('CELERY_HOST', 'localhost')
 os.environ.setdefault('CELERY_PORT', '6379')
+os.environ.setdefault('OWNER_ID', '1001')
 
 import pytest  # noqa: E402
 from aiogram import Bot  # noqa: E402
@@ -17,7 +18,7 @@ from aiogram.client.session.base import BaseSession  # noqa: E402
 from aiogram.fsm.storage.base import StorageKey  # noqa: E402
 from aiogram.fsm.storage.memory import MemoryStorage  # noqa: E402
 from aiogram.methods import AnswerCallbackQuery, TelegramMethod  # noqa: E402
-from aiogram.types import CallbackQuery, Chat, Message, Update, User  # noqa: E402
+from aiogram.types import CallbackQuery, Chat, FSInputFile, Message, Update, User  # noqa: E402
 
 from dispatcher import create_dispatcher  # noqa: E402
 
@@ -31,12 +32,18 @@ class MockedSession(BaseSession):
     def __init__(self) -> None:
         super().__init__()
         self.requests: List[TelegramMethod[Any]] = []
+        self.sent_files: List[Tuple[str, bool]] = []
 
     async def close(self) -> None:
         pass
 
     async def make_request(self, bot: Bot, method: TelegramMethod[Any], timeout: Optional[int] = None) -> Any:
         self.requests.append(method)
+        for attr in ('document', 'photo'):
+            file = getattr(method, attr, None)
+            if isinstance(file, FSInputFile):
+                # Remember whether the file was on disk at send time (it is deleted afterwards).
+                self.sent_files.append((str(file.path), os.path.exists(file.path)))
         if isinstance(method, AnswerCallbackQuery):
             return True
         return Message(message_id=len(self.requests), date=datetime.now(), chat=Chat(id=USER_ID, type='private'),
@@ -49,8 +56,8 @@ class MockedSession(BaseSession):
         return [m.text for m in self.requests if getattr(m, 'text', None) is not None]
 
 
-def make_user(language_code: str = 'ru', username: Optional[str] = USERNAME) -> User:
-    return User(id=USER_ID, is_bot=False, first_name='Test', username=username, language_code=language_code)
+def make_user(language_code: str = 'ru', username: Optional[str] = USERNAME, user_id: int = USER_ID) -> User:
+    return User(id=user_id, is_bot=False, first_name='Test', username=username, language_code=language_code)
 
 
 def make_message(text: str, user: Optional[User] = None) -> Update:
@@ -70,7 +77,7 @@ def make_callback(data: str, user: Optional[User] = None) -> Update:
 
 _storage = MemoryStorage()
 # Routers are module-level and can be attached to only one Dispatcher, so build it once.
-_dp = create_dispatcher(storage=_storage)
+_dp = create_dispatcher(storage=_storage, owner_id=USER_ID)
 
 
 class BotHarness:
