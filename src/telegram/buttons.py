@@ -1,5 +1,9 @@
+import uuid
+from typing import Optional
+
 from aiogram import types
 
+from config import FEATURE_HISTORY
 from i18n import _
 
 
@@ -11,11 +15,14 @@ async def get_button_manage_money(lang=None):
     button_add_category = types.KeyboardButton(text=_('📥 Добавить категорию', locale=lang))
     button_delete_category = types.KeyboardButton(text=_('📤 Удалить категорию', locale=lang))
     button_balance = types.KeyboardButton(text=_('📊 Баланс', locale=lang))
+    first_row = [button_balance]
+    if FEATURE_HISTORY:
+        first_row.append(types.KeyboardButton(text=_('📜 История', locale=lang)))
     button_settings = types.KeyboardButton(text=_('⚙️ Настройки', locale=lang))
     last_button = types.KeyboardButton(text=_('🕒 Последние 10 операций'))
 
     button_manager = types.ReplyKeyboardMarkup(
-        keyboard=[[button_balance],
+        keyboard=[first_row,
                   [button_income, button_expense],
                   [button_show_categories, button_add_category, button_delete_category],
                   [button_settings, last_button]],
@@ -24,6 +31,14 @@ async def get_button_manage_money(lang=None):
     )
 
     return button_manager
+
+
+def undo_markup(operation_id: Optional[uuid.UUID]) -> Optional[types.InlineKeyboardMarkup]:
+    """↩️ under a just-saved operation; handled by the history router."""
+    if not FEATURE_HISTORY or operation_id is None:
+        return None
+    button = types.InlineKeyboardButton(text=_('↩️ Отменить'), callback_data=f'h:undo:{operation_id.hex}')
+    return types.InlineKeyboardMarkup(inline_keyboard=[[button]])
 
 
 async def get_button_cancel():

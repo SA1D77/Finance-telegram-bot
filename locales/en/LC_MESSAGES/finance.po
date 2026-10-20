@@ -582,3 +582,135 @@ msgstr "This button is out of date. Send the entry again."
 #: src/telegram/messages.py
 msgid "⚡ Быстрый ввод: напишите сумму и категорию одним сообщением.\n\n<code>500 кафе обед</code> — расход с комментарием\n<code>+50000 зарплата</code> — доход\n<code>1200+350*2 продукты</code> — с калькулятором\n\nЕсли категории нет или она похожа на другую, бот переспросит."
 msgstr "⚡ Quick entry: type the amount and the category in one message.\n\n<code>500 cafe lunch</code> — an expense with a comment\n<code>+50000 salary</code> — income\n<code>1200+350*2 groceries</code> — with the calculator\n\nIf the category does not exist or looks like another one, the bot will ask."
+
+#: src/history/handlers.py
+msgid "всё время"
+msgstr "all time"
+
+#: src/history/handlers.py
+msgid "сегодня"
+msgstr "today"
+
+#: src/history/handlers.py
+msgid "7 дней"
+msgstr "7 days"
+
+#: src/history/handlers.py
+msgid "этот месяц"
+msgstr "this month"
+
+#: src/history/handlers.py
+msgid "этот год"
+msgstr "this year"
+
+#: src/history/handlers.py
+msgid "💰 Сумма"
+msgstr "💰 Amount"
+
+#: src/history/handlers.py
+msgid "🗂 Категория"
+msgstr "🗂 Category"
+
+#: src/history/handlers.py
+msgid "💬 Комментарий"
+msgstr "💬 Comment"
+
+#: src/history/handlers.py
+msgid "📅 Дата"
+msgstr "📅 Date"
+
+#: src/history/handlers.py
+msgid "🗑 Удалить"
+msgstr "🗑 Delete"
+
+#: src/history/handlers.py
+msgid "⬅️ К списку"
+msgstr "⬅️ Back to list"
+
+#: src/history/handlers.py
+msgid "все"
+msgstr "all"
+
+#: src/telegram/buttons.py
+msgid "📜 История"
+msgstr "📜 History"
+
+#: src/history/handlers.py
+msgid "Период: {period}"
+msgstr "Period: {period}"
+
+#: src/history/handlers.py
+msgid "Категория: {category}"
+msgstr "Category: {category}"
+
+#: src/history/handlers.py
+msgid "Операций нет."
+msgstr "No operations."
+
+#: src/history/handlers.py
+msgid "Страница {page} из {pages}, всего {total}"
+msgstr "Page {page} of {pages}, {total} in total"
+
+#: src/history/handlers.py
+msgid "📅 Период"
+msgstr "📅 Period"
+
+#: src/history/handlers.py
+msgid "✖️ Сбросить фильтры"
+msgstr "✖️ Clear filters"
+
+#: src/history/handlers.py
+msgid "Операция не найдена: возможно, она уже удалена."
+msgstr "Operation not found: it may have been deleted."
+
+#: src/history/handlers.py
+msgid "Все категории"
+msgstr "All categories"
+
+#: src/history/handlers.py
+msgid "Введите новую сумму (можно с расчётом, например 1200+350)"
+msgstr "Enter the new amount (a calculation like 1200+350 works too)"
+
+#: src/history/handlers.py
+msgid "Введите комментарий или «-», чтобы его удалить"
+msgstr "Enter a comment, or \"-\" to remove it"
+
+#: src/history/handlers.py
+msgid "Введите дату: 21.10, 21.10.2026 14:30, «сегодня» или «вчера»"
+msgstr "Enter a date: 21.10, 21.10.2026 14:30, \"today\" or \"yesterday\""
+
+#: src/history/handlers.py
+msgid "Сохранено"
+msgstr "Saved"
+
+#: src/history/handlers.py
+msgid "Не понял дату. Примеры: 21.10, 21.10.2026 14:30, вчера"
+msgstr "I didn't understand the date. Examples: 21.10, 21.10.2026 14:30, yesterday"
+
+#: src/history/handlers.py
+msgid "⬅️ Назад"
+msgstr "⬅️ Back"
+
+#: src/history/handlers.py
+msgid "🗑 Да, удалить"
+msgstr "🗑 Yes, delete"
+
+#: src/history/handlers.py
+msgid "⬅️ Нет"
+msgstr "⬅️ No"
+
+#: src/history/handlers.py
+msgid "Удалить эту операцию?"
+msgstr "Delete this operation?"
+
+#: src/history/handlers.py
+msgid "Операция удалена."
+msgstr "Operation deleted."
+
+#: src/history/handlers.py
+msgid "Последняя операция:"
+msgstr "Last operation:"
+
+#: src/telegram/buttons.py
+msgid "↩️ Отменить"
+msgstr "↩️ Undo"

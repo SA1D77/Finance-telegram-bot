@@ -5,6 +5,7 @@ import sys
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.types import BotCommand
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
@@ -29,6 +30,12 @@ async def main() -> None:
     bot = Bot(token=TELEGRAM, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     storage = RedisStorage(redis=Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=FSM_REDIS_DB))
     dp = create_dispatcher(storage=storage, owner_id=OWNER_ID)
+
+    await bot.set_my_commands([
+        BotCommand(command='history', description='История операций'),
+        BotCommand(command='undo', description='Отменить последнюю операцию'),
+        BotCommand(command='report', description='Отчёт'),
+    ])
 
     try:
         await dp.start_polling(bot)

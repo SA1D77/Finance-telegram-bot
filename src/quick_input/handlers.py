@@ -53,15 +53,16 @@ def _category_rows(categories):
 
 
 async def _save(message: types.Message, user_id: int, pending: Dict[str, Any], category) -> None:
-    await _add_operation(
+    operation_id = await _add_operation(
         user_id=user_id,
         category_id=category.id,
         quantity=Decimal(pending['amount']),
         operation_type=OperationType[pending['type']],
         comment=pending.get('comment'),
     )
+    # The reply keyboard is still on screen in this flow, so the message can carry the inline undo button.
     await message.answer(text='✅ ' + _('Новая запись:') + '\n' + _summary(pending, category.name),
-                         reply_markup=await buttons.get_button_manage_money())
+                         reply_markup=buttons.undo_markup(operation_id) or await buttons.get_button_manage_money())
 
 
 @router.message(StateFilter(None), F.text.func(looks_like_quick_entry))

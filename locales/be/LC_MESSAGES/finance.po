@@ -566,3 +566,135 @@ msgstr "Гэтая кнопка састарэла. Адпраўце апера�
 #: src/telegram/messages.py
 msgid "⚡ Быстрый ввод: напишите сумму и категорию одним сообщением.\n\n<code>500 кафе обед</code> — расход с комментарием\n<code>+50000 зарплата</code> — доход\n<code>1200+350*2 продукты</code> — с калькулятором\n\nЕсли категории нет или она похожа на другую, бот переспросит."
 msgstr "⚡ Хуткі ўвод: напішыце суму і катэгорыю адным паведамленнем.\n\n<code>500 кафэ абед</code> — расход з каментарыем\n<code>+50000 зарплата</code> — даход\n<code>1200+350*2 прадукты</code> — з калькулятарам\n\nКалі катэгорыі няма або яна падобная на іншую, бот перапытае."
+
+#: src/history/handlers.py
+msgid "всё время"
+msgstr "увесь час"
+
+#: src/history/handlers.py
+msgid "сегодня"
+msgstr "сёння"
+
+#: src/history/handlers.py
+msgid "7 дней"
+msgstr "7 дзён"
+
+#: src/history/handlers.py
+msgid "этот месяц"
+msgstr "гэты месяц"
+
+#: src/history/handlers.py
+msgid "этот год"
+msgstr "гэты год"
+
+#: src/history/handlers.py
+msgid "💰 Сумма"
+msgstr "💰 Сума"
+
+#: src/history/handlers.py
+msgid "🗂 Категория"
+msgstr "🗂 Катэгорыя"
+
+#: src/history/handlers.py
+msgid "💬 Комментарий"
+msgstr "💬 Каментарый"
+
+#: src/history/handlers.py
+msgid "📅 Дата"
+msgstr "📅 Дата"
+
+#: src/history/handlers.py
+msgid "🗑 Удалить"
+msgstr "🗑 Выдаліць"
+
+#: src/history/handlers.py
+msgid "⬅️ К списку"
+msgstr "⬅️ Да спісу"
+
+#: src/history/handlers.py
+msgid "все"
+msgstr "усе"
+
+#: src/telegram/buttons.py
+msgid "📜 История"
+msgstr "📜 Гісторыя"
+
+#: src/history/handlers.py
+msgid "Период: {period}"
+msgstr "Перыяд: {period}"
+
+#: src/history/handlers.py
+msgid "Категория: {category}"
+msgstr "Катэгорыя: {category}"
+
+#: src/history/handlers.py
+msgid "Операций нет."
+msgstr "Аперацый няма."
+
+#: src/history/handlers.py
+msgid "Страница {page} из {pages}, всего {total}"
+msgstr "Старонка {page} з {pages}, усяго {total}"
+
+#: src/history/handlers.py
+msgid "📅 Период"
+msgstr "📅 Перыяд"
+
+#: src/history/handlers.py
+msgid "✖️ Сбросить фильтры"
+msgstr "✖️ Скінуць фільтры"
+
+#: src/history/handlers.py
+msgid "Операция не найдена: возможно, она уже удалена."
+msgstr "Аперацыя не знойдзена: магчыма, яна ўжо выдалена."
+
+#: src/history/handlers.py
+msgid "Все категории"
+msgstr "Усе катэгорыі"
+
+#: src/history/handlers.py
+msgid "Введите новую сумму (можно с расчётом, например 1200+350)"
+msgstr "Увядзіце новую суму (можна з разлікам, напрыклад 1200+350)"
+
+#: src/history/handlers.py
+msgid "Введите комментарий или «-», чтобы его удалить"
+msgstr "Увядзіце каментарый або «-», каб яго выдаліць"
+
+#: src/history/handlers.py
+msgid "Введите дату: 21.10, 21.10.2026 14:30, «сегодня» или «вчера»"
+msgstr "Увядзіце дату: 21.10, 21.10.2026 14:30, «сёння» або «учора»"
+
+#: src/history/handlers.py
+msgid "Сохранено"
+msgstr "Захавана"
+
+#: src/history/handlers.py
+msgid "Не понял дату. Примеры: 21.10, 21.10.2026 14:30, вчера"
+msgstr "Не зразумеў дату. Прыклады: 21.10, 21.10.2026 14:30, учора"
+
+#: src/history/handlers.py
+msgid "⬅️ Назад"
+msgstr "⬅️ Назад"
+
+#: src/history/handlers.py
+msgid "🗑 Да, удалить"
+msgstr "🗑 Так, выдаліць"
+
+#: src/history/handlers.py
+msgid "⬅️ Нет"
+msgstr "⬅️ Не"
+
+#: src/history/handlers.py
+msgid "Удалить эту операцию?"
+msgstr "Выдаліць гэтую аперацыю?"
+
+#: src/history/handlers.py
+msgid "Операция удалена."
+msgstr "Аперацыя выдалена."
+
+#: src/history/handlers.py
+msgid "Последняя операция:"
+msgstr "Апошняя аперацыя:"
+
+#: src/telegram/buttons.py
+msgid "↩️ Отменить"
+msgstr "↩️ Адмяніць"

@@ -555,3 +555,135 @@ msgstr ""
 #: src/telegram/messages.py
 msgid "⚡ Быстрый ввод: напишите сумму и категорию одним сообщением.\n\n<code>500 кафе обед</code> — расход с комментарием\n<code>+50000 зарплата</code> — доход\n<code>1200+350*2 продукты</code> — с калькулятором\n\nЕсли категории нет или она похожа на другую, бот переспросит."
 msgstr ""
+
+#: src/history/handlers.py
+msgid "всё время"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "сегодня"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "7 дней"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "этот месяц"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "этот год"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "💰 Сумма"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "🗂 Категория"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "💬 Комментарий"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "📅 Дата"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "🗑 Удалить"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "⬅️ К списку"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "все"
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "📜 История"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Период: {period}"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Категория: {category}"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Операций нет."
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Страница {page} из {pages}, всего {total}"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "📅 Период"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "✖️ Сбросить фильтры"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Операция не найдена: возможно, она уже удалена."
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Все категории"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Введите новую сумму (можно с расчётом, например 1200+350)"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Введите комментарий или «-», чтобы его удалить"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Введите дату: 21.10, 21.10.2026 14:30, «сегодня» или «вчера»"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Сохранено"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Не понял дату. Примеры: 21.10, 21.10.2026 14:30, вчера"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "⬅️ Назад"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "🗑 Да, удалить"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "⬅️ Нет"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Удалить эту операцию?"
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Операция удалена."
+msgstr ""
+
+#: src/history/handlers.py
+msgid "Последняя операция:"
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "↩️ Отменить"
+msgstr ""

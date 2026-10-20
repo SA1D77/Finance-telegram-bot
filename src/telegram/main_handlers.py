@@ -101,9 +101,9 @@ async def income_category_input_handler(callback_query: types.CallbackQuery, sta
         return
 
     total = Decimal((await state.get_data())['total'])
-    await _add_income(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
+    operation_id = await _add_income(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
 
-    await callback_query.message.edit_text(text=_('Новая запись:'))
+    await callback_query.message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
     await callback_query.message.answer(text=_('ДОХОД') + f' <b>{total} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
 
     await state.clear()
@@ -117,9 +117,9 @@ async def expenditure_category_input_handler(callback_query: types.CallbackQuery
         return
 
     total = Decimal((await state.get_data())['total'])
-    await _add_expenditure(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
+    operation_id = await _add_expenditure(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
 
-    await callback_query.message.edit_text(text=_('Новая запись:'))
+    await callback_query.message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
     await callback_query.message.answer(text=_('РАСХОД') + f' <b>{total} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
 
     await state.clear()
