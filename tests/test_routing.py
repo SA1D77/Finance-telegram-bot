@@ -1,9 +1,31 @@
+from decimal import Decimal
+from types import SimpleNamespace
+
 import i18n
-from middleware import accounting
-from telegram import main_handlers, common_handlers  # noqa: F401
+import middleware.ensure_user
+from middleware import general_handlers
+from telegram import main_handlers
 from telegram.states import IncomeState, ExpenditureState, AddCategoryState
 
-from conftest import make_callback, make_message, make_user
+from conftest import USER_ID, make_callback, make_message, make_user
+
+FOOD = SimpleNamespace(id=1, name='еда')
+SALARY = SimpleNamespace(id=2, name='зарплата')
+
+
+def use_categories(monkeypatch, *categories):
+    by_id = {c.id: c for c in categories}
+
+    async def show(user_id):
+        assert user_id == USER_ID
+        return list(categories)
+
+    async def get(category_id, user_id):
+        assert user_id == USER_ID
+        return by_id.get(category_id)
+
+    monkeypatch.setattr(main_handlers, '_show_all_categories', show)
+    monkeypatch.setattr(general_handlers, '_get_category', get)
 
 
 async def test_income_button_starts_income_flow(harness):
@@ -16,26 +38,25 @@ async def test_income_button_starts_income_flow(harness):
 async def test_full_income_flow_saves_operation(harness, monkeypatch):
     saved = {}
 
-    async def fake_categories(username):
-        return '\nЕда\nЗарплата'
+    async def fake_add_income(user_id, category_id, quantity):
+        saved.update(user_id=user_id, category_id=category_id, quantity=quantity)
 
-    async def fake_add_income(username, category, quantity):
-        saved.update(username=username, category=category, quantity=quantity)
-
-    monkeypatch.setattr(main_handlers, '_show_all_categories', fake_categories)
-    monkeypatch.setattr(accounting, '_show_all_categories', fake_categories)
+    use_categories(monkeypatch, FOOD, SALARY)
     monkeypatch.setattr(main_handlers, '_add_income', fake_add_income)
 
     await harness.feed(make_message('➕ Доход'))
-    await harness.feed(make_message('150.5'))
+    await harness.feed(make_message('150,5'))
     assert await harness.state() == IncomeState.category_input.state
-    assert (await harness.data())['total'] == 150.5
+    assert (await harness.data())['total'] == '150.50'
+    keyboard = harness.session.requests[-1].reply_markup.inline_keyboard
+    assert [row[0].callback_data for row in keyboard] == ['category_1', 'category_2', 'cancel']
+    assert [row[0].text for row in keyboard][:2] == ['Еда', 'Зарплата']
 
-    await harness.feed(make_callback('category_Зарплата'))
+    await harness.feed(make_callback('category_2'))
 
-    assert saved == {'username': 'owner', 'category': 'зарплата', 'quantity': 150.5}
+    assert saved == {'user_id': USER_ID, 'category_id': 2, 'quantity': Decimal('150.50')}
     assert await harness.state() is None
-    assert 'ДОХОД <b>150.5 зарплата</b>' in harness.session.texts()
+    assert 'ДОХОД <b>150.50 зарплата</b>' in harness.session.texts()
 
 
 async def test_invalid_amount_keeps_state(harness):
@@ -58,6 +79,17 @@ async def test_menu_buttons_ignored_inside_input_state(harness):
     assert 'ВАШ ТЕКУЩИЙ БАЛАНС:' not in harness.session.texts()
 
 
+async def test_balance_is_shown_exactly(harness, monkeypatch):
+    async def balance(user_id):
+        return Decimal('1749.60')
+
+    monkeypatch.setattr(main_handlers, '_get_balance', balance)
+
+    await harness.feed(make_message('📊 Баланс'))
+
+    assert harness.session.texts() == ['ВАШ ТЕКУЩИЙ БАЛАНС:', '1749.60']
+
+
 async def test_cancel_works_in_any_state(harness):
     await harness.set_state(AddCategoryState.add_categories_input)
 
@@ -68,7 +100,8 @@ async def test_cancel_works_in_any_state(harness):
 
 
 async def test_saved_language_translates_buttons_and_answers(harness, monkeypatch):
-    async def saved_lang(username):
+    async def saved_lang(user_id):
+        assert user_id == USER_ID
         return 'en'
 
     monkeypatch.setattr(i18n, '_get_user_lang', saved_lang)
@@ -85,7 +118,24 @@ async def test_telegram_language_used_when_nothing_saved(harness):
     assert await harness.state() == IncomeState.income_input.state
 
 
-async def test_user_without_username_does_not_crash_i18n(harness):
+async def test_user_without_username_works(harness):
     await harness.feed(make_message('➕ Доход', user=make_user(username=None)))
 
     assert await harness.state() == IncomeState.income_input.state
+
+
+async def test_start_greets_new_user_with_sticker(harness, monkeypatch):
+    calls = []
+
+    async def created(user_id, username):
+        calls.append((user_id, username))
+        return True
+
+    monkeypatch.setattr(middleware.ensure_user, 'ensure_user', created)
+
+    await harness.feed(make_message('/start'))
+    await harness.feed(make_message('/start'))
+
+    assert calls == [(USER_ID, 'owner')]  # checked once per process
+    names = [type(m).__name__ for m in harness.session.requests]
+    assert names == ['SendSticker', 'SendMessage', 'SendMessage']

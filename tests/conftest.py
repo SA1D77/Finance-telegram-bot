@@ -21,6 +21,7 @@ from aiogram.methods import AnswerCallbackQuery, TelegramMethod  # noqa: E402
 from aiogram.types import CallbackQuery, Chat, FSInputFile, Message, Update, User  # noqa: E402
 
 from dispatcher import create_dispatcher  # noqa: E402
+from middleware.ensure_user import EnsureUserMiddleware  # noqa: E402
 
 USER_ID = 1001
 USERNAME = 'owner'
@@ -78,6 +79,7 @@ def make_callback(data: str, user: Optional[User] = None) -> Update:
 _storage = MemoryStorage()
 # Routers are module-level and can be attached to only one Dispatcher, so build it once.
 _dp = create_dispatcher(storage=_storage, owner_id=USER_ID)
+_ensure_user = next(m for m in _dp.update.outer_middleware if isinstance(m, EnsureUserMiddleware))
 
 
 class BotHarness:
@@ -86,6 +88,7 @@ class BotHarness:
         self.bot = Bot(token=os.environ['TELEGRAM'], session=self.session)
         self.storage = _storage
         self.storage.storage.clear()
+        _ensure_user.known.clear()
         self.dp = _dp
         self.key = StorageKey(bot_id=self.bot.id, chat_id=USER_ID, user_id=USER_ID)
 
@@ -105,10 +108,15 @@ class BotHarness:
 @pytest.fixture
 def harness(monkeypatch: pytest.MonkeyPatch) -> BotHarness:
     import i18n
+    import middleware.ensure_user
 
-    async def no_saved_lang(username: str) -> None:
+    async def no_saved_lang(user_id: int) -> None:
         return None
 
-    # Locale stored in Redis; tests that need a saved language override this.
+    async def existing_user(user_id: int, username: Optional[str]) -> bool:
+        return False
+
+    # Both read the database; tests that need other answers override them.
     monkeypatch.setattr(i18n, '_get_user_lang', no_saved_lang)
+    monkeypatch.setattr(middleware.ensure_user, 'ensure_user', existing_user)
     return BotHarness()

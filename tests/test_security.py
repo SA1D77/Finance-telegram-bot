@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -11,7 +12,7 @@ import i18n
 import main
 from accounting.models import OperationType
 from celery_app import celery
-from middleware import accounting
+from middleware import accounting, general_handlers
 from report import files as report_files
 from report.email_send import is_valid_email
 from telegram import main_handlers, report_handlers
@@ -29,7 +30,7 @@ def stranger(username='stranger'):
 @pytest.fixture
 def redis_forbidden(monkeypatch):
     """Fails the test if anything tries to read the language from Redis."""
-    async def boom(username):
+    async def boom(user_id):
         raise AssertionError('Redis must not be touched for a foreign update')
 
     monkeypatch.setattr(i18n, '_get_user_lang', boom)
@@ -64,7 +65,7 @@ async def test_stranger_callback_is_ignored(harness, redis_forbidden, monkeypatc
 
     monkeypatch.setattr(main_handlers, '_add_income', must_not_save)
     await harness.feed(make_callback('cancel', user=stranger()))
-    await harness.feed(make_callback('category_Еда', user=stranger()))
+    await harness.feed(make_callback('category_1', user=stranger()))
 
     assert harness.session.requests == []
 
@@ -108,43 +109,33 @@ async def test_bot_refuses_to_start_without_owner(monkeypatch):
 
 # --- Data isolation --------------------------------------------------------
 
-async def test_last_operations_are_filtered_by_user(monkeypatch):
+@pytest.mark.parametrize('time', ['last', '30'])
+async def test_operations_are_filtered_by_user(monkeypatch, time):
     captured = {}
 
     async def capture(statemant):
         captured['sql'] = str(statemant.compile(compile_kwargs={'literal_binds': True}))
         return []
 
-    monkeypatch.setattr(accounting, '_execute_select_command', capture)
+    monkeypatch.setattr(accounting, '_execute_select_rows', capture)
 
-    await accounting._get_accounts(username='owner', time='last')
+    await accounting._get_accounts(user_id=1001, time=time)
 
-    assert "WHERE accounting.user_id = 'owner'" in captured['sql']
-
-
-async def test_category_match_is_exact(monkeypatch):
-    async def categories(username):
-        return '\nЕда вне дома\nКафе'
-
-    monkeypatch.setattr(accounting, '_show_all_categories', categories)
-
-    assert await accounting._get_category('кафе', 'owner') == 'кафе'
-    assert await accounting._get_category('еда', 'owner') is None
-    assert await accounting._get_category('', 'owner') is None
+    assert 'accounting.user_id = 1001' in captured['sql']
 
 
-@pytest.mark.parametrize('callback', ['category_Чужая', 'category_'])
+@pytest.mark.parametrize('callback', ['category_99', 'category_', 'category_Еда', 'category_-1'])
 async def test_unknown_category_callback_is_rejected(harness, monkeypatch, callback):
-    async def categories(username):
-        return '\nЕда'
+    async def only_own(category_id, user_id):
+        return SimpleNamespace(id=1, name='еда') if (category_id, user_id) == (1, 1001) else None
 
     async def must_not_save(**kwargs):
         raise AssertionError('unknown category was saved')
 
-    monkeypatch.setattr(accounting, '_show_all_categories', categories)
+    monkeypatch.setattr(general_handlers, '_get_category', only_own)
     monkeypatch.setattr(main_handlers, '_add_income', must_not_save)
     await harness.set_state(IncomeState.category_input)
-    await harness.storage.set_data(harness.key, {'total': 10.0, 'username': 'owner'})
+    await harness.storage.set_data(harness.key, {'total': '10.00'})
 
     await harness.feed(make_callback(callback))
 
@@ -156,9 +147,9 @@ async def test_unknown_category_callback_is_rejected(harness, monkeypatch, callb
 
 def fake_accounts():
     return [
-        SimpleNamespace(categories='еда', created_at=datetime(2026, 10, 1, 12, 0), quantity=250.0,
+        SimpleNamespace(categories='еда', created_at=datetime(2026, 10, 1, 12, 0), quantity=Decimal('250.10'),
                         operation_type=OperationType.expenditure),
-        SimpleNamespace(categories='зарплата', created_at=datetime(2026, 10, 2, 9, 0), quantity=1000.0,
+        SimpleNamespace(categories='зарплата', created_at=datetime(2026, 10, 2, 9, 0), quantity=Decimal('1000.00'),
                         operation_type=OperationType.income),
     ]
 
@@ -194,11 +185,11 @@ def test_report_with_single_category_and_empty_period(generated_dir):
 
 
 async def test_report_to_chat_sends_files_then_deletes_them(harness, monkeypatch, generated_dir):
-    async def accounts(username, time):
-        assert (username, time) == ('owner', '30')
+    async def accounts(user_id, time):
+        assert (user_id, time) == (1001, '30')
         return fake_accounts()
 
-    async def no_lang(username):
+    async def no_lang(user_id):
         return None
 
     monkeypatch.setattr(report_handlers, '_get_accounts', accounts)
@@ -255,17 +246,17 @@ async def test_invalid_email_is_not_sent(harness, monkeypatch):
 async def test_valid_email_gets_json_safe_task_arguments(harness, monkeypatch):
     sent = []
 
-    async def accounts(username, time):
+    async def accounts(user_id, time):
         return fake_accounts()
 
-    async def no_lang(username):
+    async def no_lang(user_id):
         return None
 
     monkeypatch.setattr(report_handlers, '_get_accounts', accounts)
     monkeypatch.setattr(report_handlers, '_get_user_lang', no_lang)
     monkeypatch.setattr(report_handlers.email_report, 'delay', lambda **kwargs: sent.append(kwargs))
     await harness.set_state(ReportState.email)
-    await harness.storage.set_data(harness.key, {'time': '30', 'username': 'owner'})
+    await harness.storage.set_data(harness.key, {'time': '30'})
 
     await harness.feed(make_message(' me@example.com '))
 
