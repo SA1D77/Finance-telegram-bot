@@ -63,7 +63,7 @@ async def test_exact_category_saves_immediately(harness, db):
     assert db.saved == [{'user_id': USER_ID, 'category_id': 1, 'quantity': Decimal('500.00'),
                          'operation_type': OperationType.expenditure, 'comment': 'обед с коллегами'}]
     text = harness.session.texts()[-1]
-    assert 'РАСХОД <b>500.00 кафе</b>' in text and '💬 обед с коллегами' in text
+    assert 'РАСХОД <b>500 кафе</b>' in text and '💬 обед с коллегами' in text
 
 
 async def test_plus_sign_means_income(harness, db):
@@ -77,7 +77,7 @@ async def test_calculation_is_shown_before_saving(harness, db):
     await harness.feed(make_message('1200+350*2 продукты'))
 
     assert db.saved == []
-    assert '🧮 1200+350*2 = <b>1900.00</b>' in harness.session.texts()[-1]
+    assert '🧮 1200+350*2 = <b>1\xa0900</b>' in harness.session.texts()[-1]
     assert last_buttons(harness)[0] == ('✅ Сохранить', 'qi:save')
 
     await harness.feed(make_callback('qi:save'))
@@ -212,7 +212,7 @@ async def test_button_flow_accepts_calculation(harness, monkeypatch, db):
     await harness.feed(make_message('1000+500'))
 
     assert (await harness.data())['total'] == '1500.00'
-    assert harness.session.texts()[-1].startswith('🧮 1000+500 = <b>1500.00</b>')
+    assert harness.session.texts()[-1].startswith('🧮 1000+500 = <b>1\xa0500</b>')
 
 
 def test_feature_flag_parsing(monkeypatch):

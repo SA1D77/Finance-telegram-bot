@@ -3,7 +3,6 @@ from types import SimpleNamespace
 
 import pytest
 
-import i18n
 import middleware.ensure_user
 from middleware import general_handlers
 from telegram import main_handlers
@@ -109,10 +108,7 @@ async def test_unknown_button_is_answered(harness):
 
 
 async def test_menu_text_in_english(harness, monkeypatch):
-    async def saved_lang(user_id):
-        return 'en'
-
-    monkeypatch.setattr(i18n, '_get_user_lang', saved_lang)
+    harness.settings['locale'] = 'en'
     await harness.set_state(IncomeState.category_input)
 
     await harness.feed(make_message('➖ Expenditure'))
@@ -141,11 +137,7 @@ async def test_cancel_works_in_any_state(harness):
 
 
 async def test_saved_language_translates_buttons_and_answers(harness, monkeypatch):
-    async def saved_lang(user_id):
-        assert user_id == USER_ID
-        return 'en'
-
-    monkeypatch.setattr(i18n, '_get_user_lang', saved_lang)
+    harness.settings['locale'] = 'en'
 
     await harness.feed(make_message('➕ Income'))
 

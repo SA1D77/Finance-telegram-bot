@@ -87,9 +87,9 @@ async def test_progress_for_overall_and_categories(harness, fake):
 
     text = last(harness).text
     assert text.index('Общий бюджет') < text.index('Кафе') < text.index('Продукты')
-    assert '🟢 <b>Общий бюджет</b>\n▓▓▓▓▓▓░░░░ 64%\n32000.00 из 50000.00, осталось 18000.00' in text
-    assert 'Можно тратить 1800.00 в день' in text
-    assert '🔴 <b>Кафе</b>\n▓▓▓▓▓▓▓▓▓▓ 112%\n9000.00 из 8000.00, перерасход 1000.00' in text
+    assert '🟢 <b>Общий бюджет</b>\n▓▓▓▓▓▓░░░░ 64%\n32\xa0000 из 50\xa0000, осталось 18\xa0000' in text
+    assert 'Можно тратить 1\xa0800 в день' in text
+    assert '🔴 <b>Кафе</b>\n▓▓▓▓▓▓▓▓▓▓ 112%\n9\xa0000 из 8\xa0000, перерасход 1\xa0000' in text
     assert '🟡 <b>Продукты</b>' in text
     assert ('🗑 Убрать лимит', 'b:rm') in buttons_of(last(harness))
 

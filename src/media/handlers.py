@@ -9,6 +9,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from config import FEATURE_RECEIPTS, FEATURE_VOICE, TESSERACT_LANG, VOSK_MODEL_PATH
+from money import fmt
 from i18n import _
 from quick_input.handlers import handle_quick_text
 from quick_input.parser import looks_like_quick_entry
@@ -78,6 +79,6 @@ async def receipt_handler(message: types.Message, state: FSMContext):
     if total is None:
         await message.answer(text=_('Не нашёл сумму на чеке. Попробуйте сфотографировать ровнее или введите сумму вручную.'))
         return
-    await message.answer(text=_('🧾 Итог по чеку: {amount}').format(amount=total))
+    await message.answer(text=_('🧾 Итог по чеку: {amount}').format(amount=fmt(total)))
     caption = ' '.join((message.caption or '').split())
     await handle_quick_text(message, state, f'{total} {caption}'.strip(), confirm=True)

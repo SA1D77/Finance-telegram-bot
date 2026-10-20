@@ -2,6 +2,7 @@ from html import escape
 from typing import Any, Callable
 
 from accounting.models import OperationType
+from money import fmt
 
 Gettext = Callable[[str], str]
 
@@ -16,7 +17,7 @@ def frequency_label(frequency: str, anchor_day: int, gettext: Gettext) -> str:
 
 def summary(row: Any, gettext: Gettext) -> str:
     label = gettext('ДОХОД') if row.operation_type == OperationType.income else gettext('РАСХОД')
-    text = f'{label} <b>{row.amount} {escape(row.category)}</b>'
+    text = f'{label} <b>{fmt(row.amount)} {escape(row.category)}</b>'
     if row.comment:
         text += f'\n💬 {escape(row.comment)}'
     return text

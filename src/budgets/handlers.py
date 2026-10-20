@@ -8,6 +8,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
+from money import fmt
 from i18n import _, __
 from middleware.accounting import _get_category, _show_all_categories
 from telegram import buttons
@@ -42,14 +43,14 @@ async def _render(user_id: int):
         text += '\n\n' + _('Лимитов пока нет. Задайте общий лимит на месяц или лимит на категорию.')
     for status in statuses:
         text += f'\n\n{status_emoji(status.percent)} <b>{budget_name(status, _)}</b>\n{bar(status.percent)} {status.percent}%\n'
-        text += _('{spent} из {limit}').format(spent=status.spent, limit=status.limit) + ', '
+        text += _('{spent} из {limit}').format(spent=fmt(status.spent), limit=fmt(status.limit)) + ', '
         if status.left >= 0:
-            text += _('осталось {left}').format(left=status.left)
+            text += _('осталось {left}').format(left=fmt(status.left))
         else:
-            text += _('перерасход {over}').format(over=-status.left)
+            text += _('перерасход {over}').format(over=fmt(-status.left))
         if status.category_id is None and status.left > 0:
             per_day = (status.left / remaining_days).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
-            text += '\n' + _('Можно тратить {per_day} в день').format(per_day=per_day)
+            text += '\n' + _('Можно тратить {per_day} в день').format(per_day=fmt(per_day))
 
     rows = [[_button(_('🎯 Общий лимит'), f'b:set:{TOTAL}')], [_button(_('➕ Лимит на категорию'), 'b:cat')]]
     if statuses:

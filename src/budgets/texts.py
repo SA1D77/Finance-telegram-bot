@@ -2,6 +2,7 @@
 from html import escape
 from typing import Callable
 
+from money import fmt
 from .service import BudgetStatus
 
 BAR_WIDTH = 10
@@ -24,6 +25,6 @@ def alert_text(status: BudgetStatus, threshold: int, gettext: Callable[[str], st
     name = budget_name(status, gettext)
     if threshold >= 100:
         return gettext('🔴 {name}: лимит исчерпан. Потрачено {spent} из {limit} ({percent}%), перерасход {over}.').format(
-            name=name, spent=status.spent, limit=status.limit, percent=status.percent, over=-status.left)
+            name=name, spent=fmt(status.spent), limit=fmt(status.limit), percent=status.percent, over=fmt(-status.left))
     return gettext('🟡 {name}: потрачено {spent} из {limit} ({percent}%). Осталось {left}.').format(
-        name=name, spent=status.spent, limit=status.limit, percent=status.percent, left=status.left)
+        name=name, spent=fmt(status.spent), limit=fmt(status.limit), percent=status.percent, left=fmt(status.left))

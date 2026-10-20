@@ -1,12 +1,12 @@
 from aiogram import Dispatcher
 from aiogram.fsm.storage.base import BaseStorage
 
-from config import FEATURE_RECEIPTS, FEATURE_VOICE
+from config import ACCESS_MODE, FEATURE_RECEIPTS, FEATURE_VOICE
 from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY, FEATURE_EXPORT, FEATURE_GOALS, FEATURE_QUICK_INPUT, FEATURE_RECURRING
 from i18n import setup_middleware
 from middleware.ensure_user import EnsureUserMiddleware
 from middleware.menu_reset import MenuResetMiddleware
-from middleware.owner import OwnerOnlyMiddleware
+from middleware.owner import AccessMiddleware, ThrottleMiddleware
 from telegram import (
     category_handlers,
     common_handlers,
@@ -18,13 +18,15 @@ from telegram import (
 )
 
 
-def create_dispatcher(storage: BaseStorage, owner_id: int, quick_input: bool = FEATURE_QUICK_INPUT,
+def create_dispatcher(storage: BaseStorage, owner_id: int, public: bool = ACCESS_MODE == 'public',
+                      quick_input: bool = FEATURE_QUICK_INPUT,
                       history: bool = FEATURE_HISTORY, budgets: bool = FEATURE_BUDGETS,
                       analytics: bool = FEATURE_ANALYTICS, recurring: bool = FEATURE_RECURRING,
                       goals: bool = FEATURE_GOALS, export: bool = FEATURE_EXPORT) -> Dispatcher:
     dp = Dispatcher(storage=storage)
-    # Runs before i18n and routing: other users are ignored without a reply.
-    dp.update.outer_middleware(OwnerOnlyMiddleware(owner_id=owner_id))
+    # Runs before i18n and routing: in personal mode other users are ignored without a reply.
+    dp.update.outer_middleware(AccessMiddleware(owner_id=owner_id, public=public))
+    dp.update.outer_middleware(ThrottleMiddleware(owner_id=owner_id))
     dp.update.outer_middleware(EnsureUserMiddleware())
     setup_middleware(dp)
     dp.message.outer_middleware(MenuResetMiddleware())  # after i18n: compares translated button texts

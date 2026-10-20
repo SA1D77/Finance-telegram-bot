@@ -18,6 +18,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 from accounting.models import OperationType
 from budgets.notify import schedule_budget_check
+from money import fmt
 from i18n import _, __
 from middleware.accounting import _get_category, _show_all_categories
 from telegram import buttons
@@ -62,16 +63,16 @@ def _period_label(period: str) -> str:
 
 
 def _signed(row) -> str:
-    return ('+' if row.operation_type == OperationType.income else '−') + str(row.quantity)
+    return ('+' if row.operation_type == OperationType.income else '−') + fmt(row.quantity)
 
 
 def _card_text(row) -> str:
     label = _('ДОХОД') if row.operation_type == OperationType.income else _('РАСХОД')
-    text = f'📌 {format_local(row.created_at)}\n{label} <b>{row.quantity} {escape(row.category)}</b>'
+    text = f'📌 {format_local(row.created_at)}\n{label} <b>{fmt(row.quantity)} {escape(row.category)}</b>'
     if row.comment:
         text += f'\n💬 {escape(row.comment)}'
     if getattr(row, 'original_currency', None):
-        text += f'\n💱 {row.original_amount} {row.original_currency}'
+        text += f'\n💱 {fmt(row.original_amount, row.original_currency)}'
     return text
 
 

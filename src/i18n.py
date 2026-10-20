@@ -25,8 +25,9 @@ class ACLMiddleware(I18nMiddleware):
         user: Optional[User] = data.get('event_from_user')
         if user is None:
             return self.i18n.default_locale
-
-        return await get_lang(user.id) or user.language_code or self.i18n.default_locale
+        settings = data.get('user_settings')
+        saved = settings['locale'] if settings is not None else await get_lang(user.id)
+        return saved or user.language_code or self.i18n.default_locale
 
 
 def setup_middleware(dp) -> ACLMiddleware:

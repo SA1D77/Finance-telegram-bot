@@ -13,6 +13,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.types import FSInputFile
 
 from config import FEATURE_BUDGETS
+from money import fmt
 from i18n import _, __, i18n
 from report.headers import EXPENDITURE, INCOME
 from timeutils import days_in_month, format_local, local_now, month_range, shift_month
@@ -67,16 +68,16 @@ async def render(user_id: int, year: int, month: int) -> Tuple[str, types.Inline
     elapsed = now.day if current else total_days
 
     lines = [_('📈 Аналитика · {month}').format(month=_month_label(year, month)), '',
-             _('💰 Доходы: {amount}').format(amount=income),
-             _('💸 Расходы: {amount}').format(amount=expense)]
+             _('💰 Доходы: {amount}').format(amount=fmt(income)),
+             _('💸 Расходы: {amount}').format(amount=fmt(expense))]
     rate = metrics.savings_rate(income, expense)
     lines.append(_('🏦 Норма сбережений: {rate}%').format(rate=rate) if rate is not None
                  else _('🏦 Норма сбережений: нет доходов'))
-    lines.append(_('📆 Средний расход в день: {amount}').format(amount=metrics.average_per_day(expense, elapsed)))
+    lines.append(_('📆 Средний расход в день: {amount}').format(amount=fmt(metrics.average_per_day(expense, elapsed))))
 
     if current:
         lines.append(_('🔮 Прогноз расходов на конец месяца: {amount}').format(
-            amount=metrics.forecast(expense, elapsed, total_days)))
+            amount=fmt(metrics.forecast(expense, elapsed, total_days))))
         days_left = total_days - now.day + 1
         budget_left = await _overall_budget_left(user_id)
         if budget_left is not None:
@@ -85,7 +86,7 @@ async def render(user_id: int, year: int, month: int) -> Tuple[str, types.Inline
             basis, available = _('из остатка доходов'), income - expense
         allowance = metrics.daily_allowance(available, days_left)
         if allowance > 0:
-            lines.append(_('✅ Можно тратить в день: {amount} ({basis})').format(amount=allowance, basis=basis))
+            lines.append(_('✅ Можно тратить в день: {amount} ({basis})').format(amount=fmt(allowance), basis=basis))
         else:
             lines.append(_('⚠️ Тратить больше нечего ({basis})').format(basis=basis))
 
@@ -97,26 +98,26 @@ async def render(user_id: int, year: int, month: int) -> Tuple[str, types.Inline
         for row in comparison:
             change = _('новая') if row.change is None else f'{_signed(row.change)}%'
             details = _('(было {previous}, {diff}, {change})').format(
-                previous=row.previous, diff=_signed(row.diff), change=change)
-            lines.append(f'{escape(row.name.capitalize())}: <b>{row.current}</b> {details}')
+                previous=fmt(row.previous), diff=fmt(row.diff, signed=True), change=change)
+            lines.append(f'{escape(row.name.capitalize())}: <b>{fmt(row.current)}</b> {details}')
         previous_total = sum(previous_by_category.values(), metrics.ZERO)
         total_change = metrics.percent(expense - previous_total, previous_total)
         lines.append(_('Итого: {current} (было {previous}, {change})').format(
-            current=expense, previous=previous_total,
+            current=fmt(expense), previous=fmt(previous_total),
             change=_('новая') if total_change is None else f'{_signed(total_change)}%'))
 
     top = metrics.shares(list(current_by_category.items()))
     if top:
         lines += ['', _('🏆 Топ категорий:')]
         for number, (name, amount, share) in enumerate(top, start=1):
-            lines.append(f'{number}. {escape(name.capitalize())} — <b>{amount}</b> ({share}%)')
+            lines.append(f'{number}. {escape(name.capitalize())} — <b>{fmt(amount)}</b> ({share}%)')
 
     largest = await largest_expenses(user_id, since, until)
     if largest:
         lines += ['', _('💥 Самые крупные траты:')]
         for number, row in enumerate(largest, start=1):
             what = escape(row.comment) if row.comment else escape(row.category.capitalize())
-            lines.append(f'{number}. {format_local(row.created_at, with_year=False)} {what} — <b>{row.quantity}</b>')
+            lines.append(f'{number}. {format_local(row.created_at, with_year=False)} {what} — <b>{fmt(row.quantity)}</b>')
 
     if not income and not expense and not comparison:
         lines += ['', _('Операций нет.')]

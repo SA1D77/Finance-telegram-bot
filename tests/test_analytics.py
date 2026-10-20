@@ -75,19 +75,19 @@ async def test_current_month_screen(harness, fake):
 
     text = last(harness).text
     assert text.startswith('📈 Аналитика · 10.2026')
-    assert '💰 Доходы: 100000.00' in text and '💸 Расходы: 21500.00' in text
+    assert '💰 Доходы: 100\xa0000' in text and '💸 Расходы: 21\xa0500' in text
     assert '🏦 Норма сбережений: 78.5%' in text
-    assert '📆 Средний расход в день: 1023.81' in text            # 21500 / 21
-    assert '🔮 Прогноз расходов на конец месяца: 31738.10' in text  # 21500 / 21 * 31
-    assert '✅ Можно тратить в день: 7136.36 (из остатка доходов)' in text  # 78500 / 11
+    assert '📆 Средний расход в день: 1\xa0023.81' in text            # 21500 / 21
+    assert '🔮 Прогноз расходов на конец месяца: 31\xa0738.10' in text  # 21500 / 21 * 31
+    assert '✅ Можно тратить в день: 7\xa0136.36 (из остатка доходов)' in text  # 78500 / 11
     assert '📊 Сравнение с 09.2026:' in text
-    assert 'Продукты: <b>12000.00</b> (было 12000.00, 0.00, 0.0%)' in text
-    assert 'Кафе: <b>9000.00</b> (было 7000.00, +2000.00, +28.6%)' in text
-    assert 'Такси: <b>500.00</b> (было 0.00, +500.00, новая)' in text
-    assert 'Спорт: <b>0.00</b> (было 2000.00, -2000.00, -100.0%)' in text
-    assert 'Итого: 21500.00 (было 21000.00, +2.4%)' in text
-    assert '1. Продукты — <b>12000.00</b> (55.8%)' in text
-    assert '💥 Самые крупные траты:' in text and 'ноутбук &lt;б/у&gt; — <b>8000.00</b>' in text
+    assert 'Продукты: <b>12\xa0000</b> (было 12\xa0000, 0, 0.0%)' in text
+    assert 'Кафе: <b>9\xa0000</b> (было 7\xa0000, +2\xa0000, +28.6%)' in text
+    assert 'Такси: <b>500</b> (было 0, +500, новая)' in text
+    assert 'Спорт: <b>0</b> (было 2\xa0000, -2\xa0000, -100.0%)' in text
+    assert 'Итого: 21\xa0500 (было 21\xa0000, +2.4%)' in text
+    assert '1. Продукты — <b>12\xa0000</b> (55.8%)' in text
+    assert '💥 Самые крупные траты:' in text and 'ноутбук &lt;б/у&gt; — <b>8\xa0000</b>' in text
     assert [d for _, d in buttons_of(last(harness))] == ['a:m:2026-09', 'a:dyn:2026-10']
 
 
@@ -105,7 +105,7 @@ async def test_budget_is_used_for_daily_allowance(harness, fake, monkeypatch):
 
     await harness.feed(make_message('/stats'))
 
-    assert '✅ Можно тратить в день: 500.00 (по общему бюджету)' in last(harness).text
+    assert '✅ Можно тратить в день: 500 (по общему бюджету)' in last(harness).text
 
 
 async def test_nothing_left_to_spend(harness, fake, monkeypatch):
@@ -125,7 +125,7 @@ async def test_past_month_has_no_forecast_and_can_go_forward(harness, fake):
     edit = harness.session.requests[-2]
     assert edit.text.startswith('📈 Аналитика · 09.2026')
     assert '🔮' not in edit.text and 'Можно тратить' not in edit.text
-    assert '📆 Средний расход в день: 700.00' in edit.text  # 21000 / 30 days
+    assert '📆 Средний расход в день: 700' in edit.text  # 21000 / 30 days
     assert [d for _, d in buttons_of(edit)] == ['a:m:2026-08', 'a:m:2026-10', 'a:dyn:2026-09']
 
 

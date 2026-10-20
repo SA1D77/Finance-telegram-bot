@@ -11,6 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 from budgets.texts import bar
 from history.periods import parse_day
+from money import fmt
 from i18n import _, __
 from telegram import buttons
 from telegram.validation import parse_amount, parse_category_id
@@ -48,17 +49,17 @@ def parse_deadline(text: Optional[str], today: date) -> Optional[date]:
 
 
 def goal_text(goal: Goal, today: date) -> str:
-    text = f'🐷 <b>{escape(goal.name)}</b>\n{bar(goal.percent)} {goal.percent}%\n'
-    text += _('{saved} из {target}').format(saved=goal.saved, target=goal.target)
+    text = f'⭐ <b>{escape(goal.name)}</b>\n{bar(goal.percent)} {goal.percent}%\n'
+    text += _('{saved} из {target}').format(saved=fmt(goal.saved), target=fmt(goal.target))
     if goal.reached:
         text += ' 🎉 ' + _('Цель достигнута!')
     else:
-        text += ', ' + _('осталось {left}').format(left=goal.left)
+        text += ', ' + _('осталось {left}').format(left=fmt(goal.left))
     if goal.deadline:
         text += '\n📅 ' + _('до {date}').format(date=goal.deadline.strftime('%d.%m.%Y'))
         needed = monthly_needed(goal, today)
         if needed is not None:
-            text += ' · ' + _('откладывать {amount} в месяц').format(amount=needed)
+            text += ' · ' + _('откладывать {amount} в месяц').format(amount=fmt(needed))
         elif not goal.reached:
             text += ' · ' + _('срок прошёл')
     return text
@@ -76,7 +77,7 @@ def _card_markup(goal: Goal) -> types.InlineKeyboardMarkup:
 async def _render_list(user_id: int):
     goals = await service.list_for(user_id)
     today = local_now().date()
-    text = _('🐷 Цели накопления')
+    text = _('⭐ Цели накопления')
     if not goals:
         text += '\n\n' + _('Целей пока нет. Например: отпуск, ноутбук, подушка безопасности.')
     for number, goal in enumerate(goals, start=1):
@@ -97,7 +98,7 @@ async def _load(callback_query: types.CallbackQuery, prefix: str) -> Optional[Go
 
 
 @router.message(Command('goals'), StateFilter(None))
-@router.message(F.text == __('🐷 Цели'), StateFilter(None))
+@router.message(F.text == __('⭐ Цели'), StateFilter(None))
 async def goals_command(message: types.Message):
     text, markup = await _render_list(message.from_user.id)
     await message.answer(text=text, reply_markup=markup)
@@ -257,7 +258,7 @@ async def withdraw_input(message: types.Message, state: FSMContext):
         return
     amount = parse_amount(message.text)
     if amount is None or amount > goal.saved:
-        await message.answer(text=_('Можно снять не больше {saved}').format(saved=goal.saved), reply_markup=await buttons.get_button_cancel())
+        await message.answer(text=_('Можно снять не больше {saved}').format(saved=fmt(goal.saved)), reply_markup=await buttons.get_button_cancel())
         return
     await service.contribute(message.from_user.id, goal.id, -amount)
     await _show(message, state, goal.id)

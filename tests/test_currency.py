@@ -107,7 +107,7 @@ async def test_real_rates_source():
 # --- Quick entry in another currency ------------------------------------------------
 
 @pytest.fixture
-def multi(monkeypatch):
+def multi(monkeypatch, harness):
     saved = []
 
     async def categories(user_id):
@@ -129,7 +129,7 @@ def multi(monkeypatch):
     monkeypatch.setattr(qi, '_get_category', get_category)
     monkeypatch.setattr(qi, 'get_rate', rate)
     monkeypatch.setattr(qi, 'currencies_active', lambda: True)
-    monkeypatch.setattr(qi, 'BASE_CURRENCY', 'UZS')
+    harness.settings['currency'] = 'UZS'  # the user's main currency
     return saved
 
 
@@ -138,7 +138,7 @@ async def test_foreign_amount_is_converted_after_confirmation(harness, multi):
 
     assert multi == []
     text = harness.session.requests[-1].text
-    assert 'РАСХОД <b>632506.00 отель</b>' in text and '💱 50.00 USD × 12650.12 = 632506.00 UZS' in text
+    assert 'РАСХОД <b>632\xa0506\xa0сум отель</b>' in text and '💱 $50 × 12650.12 = 632\xa0506\xa0сум' in text
 
     await harness.feed(make_callback('qi:save'))
 

@@ -2,7 +2,7 @@ import uuid
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import case, func, insert, select, update, desc
+from sqlalchemy import case, func, insert, or_, select, update, desc
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from datetime import datetime, timedelta
@@ -17,20 +17,41 @@ from .service import (
 )
 
 
-async def _add_new_category(category_name: str, user_id: int):
-    """Creates the category, or re-enables it if it was deleted before."""
+KINDS = ('income', 'expense')
+
+
+def kind_of(operation_type: OperationType) -> str:
+    return 'income' if operation_type == OperationType.income else 'expense'
+
+
+async def _add_new_category(category_name: str, user_id: int, kind: Optional[str] = None):
+    """Creates the category, or re-enables it if it was deleted before (kind None: income and expense)."""
     statemant = (pg_insert(Categories)
-                 .values(name=category_name, user_id=user_id, is_active=True)
+                 .values(name=category_name, user_id=user_id, is_active=True, kind=kind)
                  .on_conflict_do_update(constraint='uq_categories_user_name', set_={'is_active': True}))
     await _execute_insert_update_delete_command(statemant)
 
 
-async def _show_all_categories(user_id: int) -> List[Categories]:
-    """Active categories of the user in the order they were created."""
-    statemant = (select(Categories)
-                 .where(Categories.user_id == user_id, Categories.is_active.is_(True))
-                 .order_by(Categories.id))
-    return await _execute_select_command(statemant)
+async def seed_default_categories(user_id: int, locale: Optional[str]) -> int:
+    """Gives a new user a ready set of categories in their language; does nothing if they have any."""
+    from defaults import DEFAULT_CATEGORIES
+    has_any = await _execute_scalar(select(func.count(Categories.id)).where(Categories.user_id == user_id))
+    if has_any:
+        return 0
+    names = DEFAULT_CATEGORIES.get(locale or 'ru', DEFAULT_CATEGORIES['ru'])
+    statemant = (pg_insert(Categories)
+                 .values([{'user_id': user_id, 'name': name, 'kind': kind, 'is_active': True} for name, kind in names])
+                 .on_conflict_do_nothing(constraint='uq_categories_user_name'))
+    await _execute_insert_update_delete_command(statemant)
+    return len(names)
+
+
+async def _show_all_categories(user_id: int, kind: Optional[str] = None) -> List[Categories]:
+    """Active categories in creation order; with a kind, only those for incomes or expenses (plus universal)."""
+    statemant = select(Categories).where(Categories.user_id == user_id, Categories.is_active.is_(True))
+    if kind is not None:
+        statemant = statemant.where(or_(Categories.kind == kind, Categories.kind.is_(None)))
+    return await _execute_select_command(statemant.order_by(Categories.id))
 
 
 async def _get_category(category_id: int, user_id: int) -> Optional[Categories]:

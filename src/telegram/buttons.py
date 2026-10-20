@@ -30,7 +30,7 @@ async def get_button_manage_money(lang=None):
     if FEATURE_RECURRING:
         extra_row.append(types.KeyboardButton(text=_('🔁 Регулярные', locale=lang)))
     if FEATURE_GOALS:
-        extra_row.append(types.KeyboardButton(text=_('🐷 Цели', locale=lang)))
+        extra_row.append(types.KeyboardButton(text=_('⭐ Цели', locale=lang)))
 
     rows = [first_row,
             [button_income, button_expense],

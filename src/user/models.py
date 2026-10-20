@@ -17,3 +17,5 @@ class User(Base):
     registered_at = Column(TIMESTAMP, default=utc_now)
     email = Column(String, nullable=True, unique=True)
     locale = Column(String, nullable=True)
+    # Main currency of this user (ISO code); NULL means BASE_CURRENCY from the environment.
+    currency = Column(String(3), nullable=True)

@@ -45,8 +45,8 @@ def test_goal_text():
         text = goal_text(goal('45000', deadline=date(2026, 12, 31)), TODAY)
         passed = goal_text(goal('1', deadline=date(2026, 1, 1)), TODAY)
         reached = goal_text(goal('100000'), TODAY)
-    assert '▓▓▓▓░░░░░░ 45%' in text and '45000 из 100000.00, осталось 55000.00' in text
-    assert 'до 31.12.2026 · откладывать 18333.34 в месяц' in text
+    assert '▓▓▓▓░░░░░░ 45%' in text and '45\xa0000 из 100\xa0000, осталось 55\xa0000' in text
+    assert 'до 31.12.2026 · откладывать 18\xa0333.34 в месяц' in text
     assert 'срок прошёл' in passed
     assert '🎉 Цель достигнута!' in reached
 
@@ -102,7 +102,7 @@ def last(harness):
 
 
 async def test_create_goal_and_top_up(harness, fake):
-    await harness.feed(make_message('🐷 Цели'))
+    await harness.feed(make_message('⭐ Цели'))
     assert 'Целей пока нет' in last(harness).text
 
     await harness.feed(make_callback('g:new'))
@@ -114,7 +114,7 @@ async def test_create_goal_and_top_up(harness, fake):
 
     created = fake.goals[1]
     assert (created.name, created.target, created.deadline) == ('Отпуск в горах', D('100000.00'), date(2026, 12, 31))
-    assert 'откладывать 33333.34 в месяц' in last(harness).text
+    assert 'откладывать 33\xa0333.34 в месяц' in last(harness).text
 
     await harness.feed(make_callback('g:add:1'))
     await harness.feed(make_message('60000+40000'))

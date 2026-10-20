@@ -3,7 +3,8 @@ from typing import Any, Awaitable, Callable, Dict, Optional, Set
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, User
 
-from middleware.user import ensure_user
+import money
+from middleware.user import ensure_user, get_settings
 
 
 class EnsureUserMiddleware(BaseMiddleware):
@@ -23,7 +24,12 @@ class EnsureUserMiddleware(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         user: Optional[User] = data.get('event_from_user')
-        if user is not None and user.id not in self.known:
-            data['user_created'] = await ensure_user(user_id=user.id, username=user.username)
-            self.known.add(user.id)
+        if user is not None:
+            if user.id not in self.known:
+                data['user_created'] = await ensure_user(user_id=user.id, username=user.username)
+                self.known.add(user.id)
+            locale, currency = await get_settings(user.id)
+            # One read per update: i18n and the onboarding check use it, money formats in this currency.
+            data['user_settings'] = {'locale': locale, 'currency': currency}
+            money.set_currency(currency)
         return await handler(event, data)

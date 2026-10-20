@@ -28,6 +28,8 @@ class Categories(Base):
     user_id = Column(BigInteger, ForeignKey(User.id), nullable=False)
     name = Column(String(CATEGORY_NAME_MAX_LENGTH), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    # 'income' or 'expense' limits where the category is offered; NULL: both.
+    kind = Column(String(8), nullable=True)
 
 
 class Accounting(Base):

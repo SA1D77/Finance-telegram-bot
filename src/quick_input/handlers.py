@@ -14,7 +14,8 @@ from aiogram.fsm.context import FSMContext
 
 from accounting.models import OperationType
 from budgets.notify import schedule_budget_check
-from config import BASE_CURRENCY, currencies_active
+from config import currencies_active
+from money import current_currency, fmt
 from currency.codes import split_currency
 from currency.rates import RateUnavailable, convert, get_rate
 from i18n import _
@@ -36,7 +37,7 @@ CB_CATEGORY = 'qi:cat:'
 
 def _summary(pending: Dict[str, Any], category_name: Optional[str] = None) -> str:
     label = _('ДОХОД') if pending['type'] == OperationType.income.name else _('РАСХОД')
-    text = f'{label} <b>{pending["amount"]}'
+    text = f'{label} <b>{fmt(pending["amount"])}'
     if category_name:
         text += f' {escape(category_name)}'
     text += '</b>'
@@ -44,9 +45,9 @@ def _summary(pending: Dict[str, Any], category_name: Optional[str] = None) -> st
         text += f'\n💬 {escape(pending["comment"])}'
     original = pending.get('original')
     if original:
-        text += f"\n💱 {original['amount']} {original['currency']} × {original['rate']} = {pending['amount']} {BASE_CURRENCY}"
+        text += f"\n💱 {fmt(original['amount'], original['currency'])} × {original['rate']} = {fmt(pending['amount'])}"
     if pending.get('expression'):
-        shown = f"{original['amount']} {original['currency']}" if original else pending['amount']
+        shown = fmt(original['amount'], original['currency']) if original else fmt(pending['amount'])
         text = f'🧮 {escape(pending["expression"])} = <b>{shown}</b>\n' + text
     return text
 
@@ -106,13 +107,14 @@ async def handle_quick_text(message: types.Message, state: FSMContext, text: str
     words, original, amount = entry.words, None, entry.amount
     if currencies_active():
         code, words = split_currency(entry.words)
-        if code and code != BASE_CURRENCY:
+        base = current_currency()
+        if code and code != base:
             today = local_now().date()
             try:
-                rate = await get_rate(code, BASE_CURRENCY, today, today)
+                rate = await get_rate(code, base, today, today)
             except RateUnavailable:
                 await message.answer(text=_('Не удалось получить курс {code}. Попробуйте позже или укажите сумму в {base}.').format(
-                    code=code, base=BASE_CURRENCY))
+                    code=code, base=base))
                 return
             amount = checked_amount(convert(entry.amount, rate))
             if amount is None:

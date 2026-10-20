@@ -59,12 +59,12 @@ def ru(message):
 
 
 def test_alert_texts_ru():
-    assert alert_text(status('820'), 80, ru) == '🟡 Кафе: потрачено 820 из 1000.00 (82%). Осталось 180.00.'
+    assert alert_text(status('820'), 80, ru) == '🟡 Кафе: потрачено 820 из 1\xa0000 (82%). Осталось 180.'
     assert alert_text(status('1300', category_id=None, name=None), 100, ru) == (
-        '🔴 Общий бюджет: лимит исчерпан. Потрачено 1300 из 1000.00 (130%), перерасход 300.00.')
+        '🔴 Общий бюджет: лимит исчерпан. Потрачено 1\xa0300 из 1\xa0000 (130%), перерасход 300.')
 
 
 def test_alert_text_translated_and_escaped():
     with i18n.context():
         text = alert_text(status('900', name='<кафе>'), 80, lambda m: i18n.gettext(m, locale='en'))
-    assert text == '🟡 &lt;кафе&gt;: spent 900 of 1000.00 (90%). 100.00 left.'
+    assert text == '🟡 &lt;кафе&gt;: spent 900 of 1\xa0000 (90%). 100 left.'

@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 
 from accounting.models import Categories
 from telegram import buttons
+from money import fmt
 from i18n import _, __
 from telegram.states import (
     IncomeState,
@@ -79,7 +80,7 @@ async def _amount_input(message: types.Message, state: FSMContext, next_state) -
     text = _('Введите категорию')
     expression = normalize_expression(message.text)
     if is_expression(expression):
-        text = f'🧮 {escape(expression)} = <b>{total}</b>\n\n' + text
+        text = f'🧮 {escape(expression)} = <b>{fmt(total)}</b>\n\n' + text
     await message.answer(text=text, reply_markup=await buttons.categories_buttons(categories=all_categories))
     # FSM data is stored as JSON in Redis, so the Decimal travels as a string.
     await state.update_data(total=str(total))
@@ -105,7 +106,7 @@ async def income_category_input_handler(callback_query: types.CallbackQuery, sta
     operation_id = await _add_income(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
 
     await callback_query.message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
-    await callback_query.message.answer(text=_('ДОХОД') + f' <b>{total} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
+    await callback_query.message.answer(text=_('ДОХОД') + f' <b>{fmt(total)} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
 
     await state.clear()
     await callback_query.answer()
@@ -122,7 +123,7 @@ async def expenditure_category_input_handler(callback_query: types.CallbackQuery
     await schedule_budget_check(callback_query.from_user.id)
 
     await callback_query.message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
-    await callback_query.message.answer(text=_('РАСХОД') + f' <b>{total} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
+    await callback_query.message.answer(text=_('РАСХОД') + f' <b>{fmt(total)} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
 
     await state.clear()
     await callback_query.answer()

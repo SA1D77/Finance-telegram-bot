@@ -98,6 +98,8 @@ class BotHarness:
         _ensure_user.known.clear()
         self.dp = _dp
         self.key = StorageKey(bot_id=self.bot.id, chat_id=USER_ID, user_id=USER_ID)
+        # What the user chose at onboarding; '' currency = already onboarded, amounts without a symbol.
+        self.settings = {'locale': None, 'currency': ''}
 
     async def feed(self, update: Update) -> None:
         await self.dp.feed_update(self.bot, update)
@@ -133,7 +135,13 @@ def harness(monkeypatch: pytest.MonkeyPatch) -> BotHarness:
     async def existing_user(user_id: int, username: Optional[str]) -> bool:
         return False
 
-    # Both read the database; tests that need other answers override them.
+    harness = BotHarness()
+
+    async def settings(user_id: int):
+        return harness.settings['locale'], harness.settings['currency']
+
+    # All read the database; tests that need other answers override them or change harness.settings.
     monkeypatch.setattr(i18n, '_get_user_lang', no_saved_lang)
     monkeypatch.setattr(middleware.ensure_user, 'ensure_user', existing_user)
-    return BotHarness()
+    monkeypatch.setattr(middleware.ensure_user, 'get_settings', settings)
+    return harness

@@ -18,6 +18,8 @@ def _parse_owner_id(value: Optional[str]) -> Optional[int]:
 TELEGRAM = os.getenv('TELEGRAM')
 
 OWNER_ID = _parse_owner_id(os.environ.get('OWNER_ID'))
+# public: anyone can use the bot (each user sees only their own data); owner: only OWNER_ID.
+ACCESS_MODE = (os.environ.get('ACCESS_MODE') or 'owner').strip().lower()
 
 HOST = os.environ.get('HOST')
 POSTGRES_DB = os.environ.get('POSTGRES_DB')
@@ -74,7 +76,12 @@ BASE_CURRENCY = (os.environ.get('BASE_CURRENCY') or '').strip().upper()
 
 
 def currencies_active() -> bool:
-    return FEATURE_CURRENCIES and len(BASE_CURRENCY) == 3 and BASE_CURRENCY.isalpha()
+    """Conversion of foreign amounts works once the user (or BASE_CURRENCY) has a main currency."""
+    if not FEATURE_CURRENCIES:
+        return False
+    from money import current_currency
+    code = current_currency() or ''
+    return len(code) == 3 and code.isalpha()
 
 
 # Database backups (pg_dump in the celery container, scheduled by beat).
