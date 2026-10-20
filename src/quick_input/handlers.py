@@ -91,8 +91,13 @@ async def _save(message: types.Message, user_id: int, pending: Dict[str, Any], c
 
 @router.message(StateFilter(None), F.text.func(looks_like_quick_entry))
 async def quick_entry_handler(message: types.Message, state: FSMContext):
+    await handle_quick_text(message, state, message.text)
+
+
+async def handle_quick_text(message: types.Message, state: FSMContext, text: str, confirm: bool = False) -> None:
+    """The quick-entry flow for any text; confirm=True always asks before saving (voice, receipts)."""
     try:
-        entry = parse_quick_entry(message.text)
+        entry = parse_quick_entry(text)
     except AmountError:
         await message.answer(text=_('Не получилось посчитать сумму. Пример: 500 кафе обед или 1200+350*2 продукты'))
         return
@@ -126,7 +131,7 @@ async def quick_entry_handler(message: types.Message, state: FSMContext):
     }
 
     # A calculation or a conversion is shown first; a plain amount with a known category is saved at once.
-    if match.kind == 'exact' and entry.expression is None and original is None:
+    if match.kind == 'exact' and entry.expression is None and original is None and not confirm:
         await state.update_data(**{PENDING_KEY: None})
         await _save(message, user_id, pending, match.category)
         return

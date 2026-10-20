@@ -1,0 +1,2 @@
+# Offline speech recognition, installed into the image only with INSTALL_VOICE=1 (FEATURE_VOICE=1).
+vosk==0.3.45

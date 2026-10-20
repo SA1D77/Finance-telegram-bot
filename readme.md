@@ -32,6 +32,14 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 💱 **Several currencies:** set `BASE_CURRENCY` (e.g. `UZS`) and type `50 usd кафе`, `50$ отель` or `20 евро такси`: the amount is converted by the day's rate from the free [fawazahmed0 currency-api](https://github.com/fawazahmed0/exchange-api) (no key, historical rates, a fallback mirror, cached in Redis), shown for confirmation and stored in the base currency together with the original amount, currency and rate. Balance, budgets, analytics and reports stay in the base currency; history, "last 10" and exports show the original. Editing the amount in history switches the operation to the base currency. Empty `BASE_CURRENCY` keeps the bot single-currency.
 
+🎙 **Voice and receipts (offline):** with `FEATURE_VOICE=1` a voice message like «пятьсот кафе обед» is recognised by [Vosk](https://alphacephei.com/vosk/) (small Russian model, ffmpeg) and number words become digits; with `FEATURE_RECEIPTS=1` a receipt photo is read by Tesseract and the total is found by keywords (ИТОГО, К ОПЛАТЕ, TOTAL, JAMI…). Both go through quick entry and always ask before saving; a photo caption can name the category. `start.bat` builds these components into the image only when the flags are on.
+
+| Option | Cost | Privacy | Quality |
+|---|---|---|---|
+| **Vosk + Tesseract (used)** | free | everything stays on your computer | good for short phrases; receipts depend on photo quality |
+| Cloud speech (OpenAI Whisper API, Google, Yandex SpeechKit) | ~$0.006/min and up | audio sent to the provider | better on noise and accents |
+| Cloud vision / LLM for receipts | ~$0.002–0.01 per photo | receipt image sent to the provider | best at reading crumpled receipts and line items |
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.

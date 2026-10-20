@@ -33,6 +33,12 @@ findstr /r /c:"^OWNER_ID=[0-9][0-9]*" "src\.env" >nul || (
     exit /b 1
 )
 
+rem Optional offline recognisers are built into the image only when switched on in src\.env.
+set INSTALL_VOICE=0
+set INSTALL_RECEIPTS=0
+findstr /r /c:"^FEATURE_VOICE=1" "src\.env" >nul && set INSTALL_VOICE=1
+findstr /r /c:"^FEATURE_RECEIPTS=1" "src\.env" >nul && set INSTALL_RECEIPTS=1
+
 echo Запускаю бота...
 docker compose up -d --build
 if errorlevel 1 (

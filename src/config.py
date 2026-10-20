@@ -56,6 +56,18 @@ FEATURE_EXPORT = _flag('FEATURE_EXPORT')
 FEATURE_BACKUP = _flag('FEATURE_BACKUP')
 FEATURE_CURRENCIES = _flag('FEATURE_CURRENCIES')
 
+
+def _off_flag(name: str) -> bool:
+    """Off by default: FEATURE_<NAME>=1 turns it on."""
+    return os.environ.get(name, '0').strip() == '1'
+
+
+# Offline recognition, off by default because it adds large components to the image.
+FEATURE_VOICE = _off_flag('FEATURE_VOICE')
+FEATURE_RECEIPTS = _off_flag('FEATURE_RECEIPTS')
+VOSK_MODEL_PATH = os.environ.get('VOSK_MODEL_PATH') or '/opt/vosk-model'
+TESSERACT_LANG = os.environ.get('TESSERACT_LANG') or 'rus+eng'
+
 # Main currency (ISO code such as UZS, RUB, USD). Amounts in other currencies are converted into it;
 # leave empty to keep the bot single-currency.
 BASE_CURRENCY = (os.environ.get('BASE_CURRENCY') or '').strip().upper()

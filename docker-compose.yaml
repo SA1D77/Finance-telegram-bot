@@ -14,6 +14,9 @@ services:
   app:
     build:
       context: .
+      args:
+        INSTALL_VOICE: ${INSTALL_VOICE:-0}
+        INSTALL_RECEIPTS: ${INSTALL_RECEIPTS:-0}
     image: aiogram
     container_name: aiogram_app
     restart: unless-stopped
@@ -44,9 +47,9 @@ services:
       - aiogram
 
   celery:
-    build:
-      context: .
+    # Same image as app (built once there, with its build args).
     image: aiogram
+    pull_policy: never
     container_name: aiogram_celery
     restart: unless-stopped
     command: sh -c "cd src && celery -A celery_app:celery worker --loglevel=INFO"
@@ -61,9 +64,9 @@ services:
 
   # Celery beat: starts periodic jobs (recurring operations, backups); the worker runs them.
   beat:
-    build:
-      context: .
+    # Same image as app (built once there, with its build args).
     image: aiogram
+    pull_policy: never
     container_name: aiogram_beat
     restart: unless-stopped
     command: sh -c "cd src && celery -A celery_app:celery beat --loglevel=INFO --schedule /tmp/celerybeat-schedule"

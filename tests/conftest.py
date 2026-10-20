@@ -15,6 +15,9 @@ os.environ.setdefault('CELERY_PORT', '6379')
 os.environ.setdefault('OWNER_ID', '1001')
 # A non-UTC zone, so tests really exercise local/UTC conversion (UTC+5, no DST).
 os.environ.setdefault('TIMEZONE', 'Asia/Tashkent')
+# The media router is registered only when these are on; the recognisers themselves are stubbed.
+os.environ.setdefault('FEATURE_VOICE', '1')
+os.environ.setdefault('FEATURE_RECEIPTS', '1')
 
 import pytest  # noqa: E402
 from aiogram import Bot  # noqa: E402

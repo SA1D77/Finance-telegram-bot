@@ -1,6 +1,7 @@
 from aiogram import Dispatcher
 from aiogram.fsm.storage.base import BaseStorage
 
+from config import FEATURE_RECEIPTS, FEATURE_VOICE
 from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY, FEATURE_EXPORT, FEATURE_GOALS, FEATURE_QUICK_INPUT, FEATURE_RECURRING
 from i18n import setup_middleware
 from middleware.ensure_user import EnsureUserMiddleware
@@ -53,6 +54,9 @@ def create_dispatcher(storage: BaseStorage, owner_id: int, quick_input: bool = F
     if export:
         from export.handlers import router as export_router
         dp.include_router(export_router)
+    if FEATURE_VOICE or FEATURE_RECEIPTS:
+        from media.handlers import router as media_router
+        dp.include_router(media_router)
     if quick_input:
         # Last: it only catches plain messages that start with an amount.
         from quick_input.handlers import router as quick_input_router

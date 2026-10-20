@@ -1110,3 +1110,31 @@ msgstr "Could not queue the task: check that the celery container is running."
 #: src/quick_input/handlers.py
 msgid "Не удалось получить курс {code}. Попробуйте позже или укажите сумму в {base}."
 msgstr "Could not get the {code} rate. Try later or enter the amount in {base}."
+
+#: src/media/handlers.py
+msgid "Распознавание не установлено в этой сборке. Включите его в src/.env и перезапустите start.bat."
+msgstr "Recognition is not installed in this build. Turn it on in src/.env and run start.bat again."
+
+#: src/media/handlers.py
+msgid "Слишком длинное сообщение: до {seconds} секунд."
+msgstr "Too long: up to {seconds} seconds."
+
+#: src/media/handlers.py
+msgid "Не разобрал: «{text}». Скажите, например: «пятьсот кафе обед»."
+msgstr "Could not make it out: “{text}”. Say, for example: “пятьсот кафе обед”."
+
+#: src/media/handlers.py
+msgid "🎙 Распознано: «{text}»"
+msgstr "🎙 Heard: “{text}”"
+
+#: src/media/handlers.py
+msgid "Фото слишком большое."
+msgstr "The photo is too large."
+
+#: src/media/handlers.py
+msgid "Не нашёл сумму на чеке. Попробуйте сфотографировать ровнее или введите сумму вручную."
+msgstr "Could not find the total on the receipt. Try a straighter photo or type the amount."
+
+#: src/media/handlers.py
+msgid "🧾 Итог по чеку: {amount}"
+msgstr "🧾 Receipt total: {amount}"
