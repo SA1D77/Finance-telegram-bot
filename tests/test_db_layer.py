@@ -313,3 +313,59 @@ async def test_check_and_notify_sends_once_in_user_language(db):
     assert await check_and_notify(OWNER, bot=FakeBot()) == 1
     assert await check_and_notify(OWNER, bot=FakeBot()) == 0
     assert sent == [(OWNER, '🟡 Кафе: spent 850.00 of 1000.00 (85%). 150.00 left.')]
+
+
+async def test_analytics_queries(db):
+    from datetime import datetime
+    from analytics import service as analytics
+    from history import queries
+    from timeutils import month_range
+    for uid in (OWNER, OTHER):
+        await user.ensure_user(uid, None)
+        for name in ('кафе', 'зарплата', 'техника'):
+            await accounting._add_new_category(name, uid)
+    cats = {c.name: c.id for c in await accounting._show_all_categories(OWNER)}
+    other = {c.name: c.id for c in await accounting._show_all_categories(OTHER)}
+
+    async def op(kind, category, amount, when, comment=None):
+        op_id = await accounting._add_operation(OWNER, cats[category], Decimal(amount), kind, comment=comment)
+        await queries.update_operation(OWNER, op_id, created_at=when)
+
+    EXP, INC = accounting.OperationType.expenditure, accounting.OperationType.income
+    await op(INC, 'зарплата', '100000', datetime(2026, 10, 1, 6, 0))
+    await op(EXP, 'кафе', '300', datetime(2026, 10, 2, 6, 0))
+    await op(EXP, 'техника', '50000', datetime(2026, 10, 3, 6, 0), comment='ноутбук')
+    # 20:00 UTC on 30 Sep is already 01:00 on 1 Oct in Tashkent: October.
+    await op(EXP, 'кафе', '200', datetime(2026, 9, 30, 20, 0))
+    # 18:00 UTC on 30 Sep is 23:00 on 30 Sep in Tashkent: September.
+    await op(EXP, 'кафе', '700', datetime(2026, 9, 30, 18, 0))
+    foreign = await accounting._add_expenditure(OTHER, other['кафе'], Decimal('999999'))
+    await queries.update_operation(OTHER, foreign, created_at=datetime(2026, 10, 5))
+
+    since, until = month_range(2026, 10)
+    assert await analytics.totals(OWNER, since, until) == (Decimal('100000.00'), Decimal('50500.00'))
+    assert sorted(await analytics.expenses_by_category(OWNER, since, until)) == [
+        ('кафе', Decimal('500.00')), ('техника', Decimal('50000.00'))]
+    largest = await analytics.largest_expenses(OWNER, since, until, limit=2)
+    assert [(r.quantity, r.comment, r.category) for r in largest] == [
+        (Decimal('50000.00'), 'ноутбук', 'техника'), (Decimal('300.00'), None, 'кафе')]
+
+    first, _ = month_range(2026, 9)
+    by_month = await analytics.monthly_totals(OWNER, first, until)
+    assert by_month == {(2026, 9): (Decimal('0'), Decimal('700.00')), (2026, 10): (Decimal('100000.00'), Decimal('50500.00'))}
+
+
+async def test_report_rows_between(db):
+    from datetime import datetime
+    from history import queries
+    await user.ensure_user(OWNER, None)
+    await accounting._add_new_category('кафе', OWNER)
+    category = (await accounting._show_all_categories(OWNER))[0].id
+    for day in (1, 15, 30):
+        op_id = await accounting._add_expenditure(OWNER, category, Decimal(day))
+        await queries.update_operation(OWNER, op_id, created_at=datetime(2026, 9, day, 12, 0))
+
+    rows = await accounting._get_accounts_between(OWNER, datetime(2026, 9, 10), datetime(2026, 9, 30))
+    assert [r.quantity for r in rows] == [Decimal('15.00')]
+    assert len(await accounting._get_accounts_between(OWNER, None, None)) == 3
+    assert len(await accounting._get_accounts_between(OTHER, None, None)) == 0

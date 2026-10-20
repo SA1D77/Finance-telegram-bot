@@ -185,18 +185,18 @@ def test_report_with_single_category_and_empty_period(generated_dir):
 
 
 async def test_report_to_chat_sends_files_then_deletes_them(harness, monkeypatch, generated_dir):
-    async def accounts(user_id, time):
-        assert (user_id, time) == (1001, '30')
+    async def accounts(user_id, since, until):
+        assert user_id == 1001 and since is not None and until is None
         return fake_accounts()
 
     async def no_lang(user_id):
         return None
 
-    monkeypatch.setattr(report_handlers, '_get_accounts', accounts)
+    monkeypatch.setattr(report_handlers, '_get_accounts_between', accounts)
     monkeypatch.setattr(report_handlers, '_get_user_lang', no_lang)
 
     await harness.feed(make_message('/report'))
-    await harness.feed(make_callback('time_30'))
+    await harness.feed(make_callback('time_month'))
     assert await harness.state() == ReportState.send_place.state
 
     await harness.feed(make_message('📌 Чат'))

@@ -758,3 +758,107 @@ msgstr "🎯 Бюджэт"
 #: src/budgets/handlers.py
 msgid "Введите лимит на месяц для «{name}» (0 — убрать лимит)"
 msgstr "Увядзіце ліміт на месяц для «{name}» (0 — прыбраць ліміт)"
+
+#: src/analytics/handlers.py
+msgid "📈 Аналитика · {month}"
+msgstr "📈 Аналітыка · {month}"
+
+#: src/analytics/handlers.py
+msgid "💰 Доходы: {amount}"
+msgstr "💰 Даходы: {amount}"
+
+#: src/analytics/handlers.py
+msgid "💸 Расходы: {amount}"
+msgstr "💸 Выдаткі: {amount}"
+
+#: src/analytics/handlers.py
+msgid "🏦 Норма сбережений: {rate}%"
+msgstr "🏦 Норма зберажэнняў: {rate}%"
+
+#: src/analytics/handlers.py
+msgid "🏦 Норма сбережений: нет доходов"
+msgstr "🏦 Норма зберажэнняў: няма даходаў"
+
+#: src/analytics/handlers.py
+msgid "📆 Средний расход в день: {amount}"
+msgstr "📆 Сярэдні выдатак у дзень: {amount}"
+
+#: src/analytics/handlers.py
+msgid "🔮 Прогноз расходов на конец месяца: {amount}"
+msgstr "🔮 Прагноз выдаткаў на канец месяца: {amount}"
+
+#: src/analytics/handlers.py
+msgid "по общему бюджету"
+msgstr "па агульным бюджэце"
+
+#: src/analytics/handlers.py
+msgid "из остатка доходов"
+msgstr "з астатку даходаў"
+
+#: src/analytics/handlers.py
+msgid "✅ Можно тратить в день: {amount} ({basis})"
+msgstr "✅ Можна траціць у дзень: {amount} ({basis})"
+
+#: src/analytics/handlers.py
+msgid "⚠️ Тратить больше нечего ({basis})"
+msgstr "⚠️ Траціць больш няма чаго ({basis})"
+
+#: src/analytics/handlers.py
+msgid "📊 Сравнение с {month}:"
+msgstr "📊 Параўнанне з {month}:"
+
+#: src/analytics/handlers.py
+msgid "новая"
+msgstr "новая"
+
+#: src/analytics/handlers.py
+msgid "(было {previous}, {diff}, {change})"
+msgstr "(было {previous}, {diff}, {change})"
+
+#: src/analytics/handlers.py
+msgid "Итого: {current} (было {previous}, {change})"
+msgstr "Усяго: {current} (было {previous}, {change})"
+
+#: src/analytics/handlers.py
+msgid "🏆 Топ категорий:"
+msgstr "🏆 Топ катэгорый:"
+
+#: src/analytics/handlers.py
+msgid "💥 Самые крупные траты:"
+msgstr "💥 Самыя буйныя выдаткі:"
+
+#: src/analytics/handlers.py
+msgid "📊 Динамика за 12 месяцев"
+msgstr "📊 Дынаміка за 12 месяцаў"
+
+#: src/telegram/buttons.py
+msgid "📈 Аналитика"
+msgstr "📈 Аналітыка"
+
+#: src/analytics/handlers.py
+msgid "📊 Доходы и расходы: {first} — {last}"
+msgstr "📊 Даходы і выдаткі: {first} — {last}"
+
+#: src/telegram/buttons.py
+msgid "Сегодня"
+msgstr "Сёння"
+
+#: src/telegram/buttons.py
+msgid "Неделя"
+msgstr "Тыдзень"
+
+#: src/telegram/buttons.py
+msgid "📅 Свой период"
+msgstr "📅 Свой перыяд"
+
+#: src/telegram/report_handlers.py
+msgid "Введите период: 01.09.2026-30.09.2026, 01.09-30.09 или одну дату"
+msgstr "Увядзіце перыяд: 01.09.2026-30.09.2026, 01.09-30.09 або адну дату"
+
+#: src/telegram/report_handlers.py
+msgid "Не понял период. Примеры: 01.09.2026-30.09.2026, 01.09-30.09, 05.10.2026"
+msgstr "Не зразумеў перыяд. Прыклады: 01.09.2026-30.09.2026, 01.09-30.09, 05.10.2026"
+
+#: src/telegram/report_handlers.py
+msgid "📊 Динамика по месяцам"
+msgstr "📊 Дынаміка па месяцах"

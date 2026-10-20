@@ -747,3 +747,107 @@ msgstr ""
 #: src/budgets/handlers.py
 msgid "Введите лимит на месяц для «{name}» (0 — убрать лимит)"
 msgstr ""
+
+#: src/analytics/handlers.py
+msgid "📈 Аналитика · {month}"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "💰 Доходы: {amount}"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "💸 Расходы: {amount}"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "🏦 Норма сбережений: {rate}%"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "🏦 Норма сбережений: нет доходов"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "📆 Средний расход в день: {amount}"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "🔮 Прогноз расходов на конец месяца: {amount}"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "по общему бюджету"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "из остатка доходов"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "✅ Можно тратить в день: {amount} ({basis})"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "⚠️ Тратить больше нечего ({basis})"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "📊 Сравнение с {month}:"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "новая"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "(было {previous}, {diff}, {change})"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "Итого: {current} (было {previous}, {change})"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "🏆 Топ категорий:"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "💥 Самые крупные траты:"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "📊 Динамика за 12 месяцев"
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "📈 Аналитика"
+msgstr ""
+
+#: src/analytics/handlers.py
+msgid "📊 Доходы и расходы: {first} — {last}"
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "Сегодня"
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "Неделя"
+msgstr ""
+
+#: src/telegram/buttons.py
+msgid "📅 Свой период"
+msgstr ""
+
+#: src/telegram/report_handlers.py
+msgid "Введите период: 01.09.2026-30.09.2026, 01.09-30.09 или одну дату"
+msgstr ""
+
+#: src/telegram/report_handlers.py
+msgid "Не понял период. Примеры: 01.09.2026-30.09.2026, 01.09-30.09, 05.10.2026"
+msgstr ""
+
+#: src/telegram/report_handlers.py
+msgid "📊 Динамика по месяцам"
+msgstr ""

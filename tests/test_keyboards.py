@@ -16,7 +16,7 @@ async def test_main_keyboard_layout_ru():
         ['📊 Баланс', '📜 История', '🎯 Бюджет'],
         ['➕ Доход', '➖ Расход'],
         ['🗂 Категории', '📥 Добавить категорию', '📤 Удалить категорию'],
-        ['⚙️ Настройки', '🕒 Последние 10 операций'],
+        ['⚙️ Настройки', '🕒 Последние 10 операций', '📈 Аналитика'],
     ]
 
 
@@ -43,8 +43,9 @@ async def test_long_category_name_fits_callback_limit():
     assert len(markup.inline_keyboard[0][0].callback_data.encode()) <= 64
 
 
-async def test_time_interval_buttons_in_one_row():
+async def test_time_interval_buttons_are_calendar_periods():
     with i18n.context(), i18n.use_locale('ru'):
         markup = await buttons.time_interval_buttons()
 
-    assert [b.callback_data for b in markup.inline_keyboard[0]] == ['time_1', 'time_30', 'time_365']
+    assert [[b.callback_data for b in row] for row in markup.inline_keyboard] == [
+        ['time_today', 'time_week'], ['time_month', 'time_year'], ['time_custom']]
