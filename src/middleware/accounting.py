@@ -1,12 +1,14 @@
+import uuid
 from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import case, func, insert, select, update, desc
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from accounting.models import Categories, Accounting, OperationType
+from timeutils import utc_now
 from .service import (
     _execute_insert_update_delete_command,
     _execute_scalar,
@@ -64,23 +66,25 @@ async def _get_balance(user_id: int) -> Decimal:
 
 
 async def _add_operation(user_id: int, category_id: int, quantity: Decimal, operation_type: OperationType,
-                         comment: Optional[str] = None):
+                         comment: Optional[str] = None) -> uuid.UUID:
+    """Returns the new operation id (used by the undo button)."""
     statemant = insert(Accounting).values(
         user_id=user_id,
         quantity=quantity,
         category_id=category_id,
         operation_type=operation_type,
         comment=comment,
-    )
-    await _execute_insert_update_delete_command(statemant)
+        created_at=utc_now(),
+    ).returning(Accounting.id)
+    return await _execute_scalar(statemant)
 
 
-async def _add_income(user_id: int, category_id: int, quantity: Decimal):
-    await _add_operation(user_id=user_id, category_id=category_id, quantity=quantity, operation_type=OperationType.income)
+async def _add_income(user_id: int, category_id: int, quantity: Decimal) -> uuid.UUID:
+    return await _add_operation(user_id=user_id, category_id=category_id, quantity=quantity, operation_type=OperationType.income)
 
 
-async def _add_expenditure(user_id: int, category_id: int, quantity: Decimal):
-    await _add_operation(user_id=user_id, category_id=category_id, quantity=quantity, operation_type=OperationType.expenditure)
+async def _add_expenditure(user_id: int, category_id: int, quantity: Decimal) -> uuid.UUID:
+    return await _add_operation(user_id=user_id, category_id=category_id, quantity=quantity, operation_type=OperationType.expenditure)
 
 
 async def _get_accounts(user_id: int, time: str):
@@ -92,6 +96,6 @@ async def _get_accounts(user_id: int, time: str):
     if time == 'last':
         statement = statement.order_by(desc(Accounting.created_at)).limit(10)
     else:
-        threshold_date = datetime.utcnow() - timedelta(days=int(time))
+        threshold_date = utc_now() - timedelta(days=int(time))
         statement = statement.where(Accounting.created_at >= threshold_date).order_by(Accounting.created_at)
     return await _execute_select_rows(statement)

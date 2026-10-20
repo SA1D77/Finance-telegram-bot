@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 import uuid
 import enum
-from datetime import datetime
+from timeutils import utc_now
 
 from user.models import Base, User
 
@@ -35,7 +35,7 @@ class Accounting(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(BigInteger, ForeignKey(User.id), nullable=False, index=True)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    created_at = Column(TIMESTAMP, default=utc_now)
     quantity = Column(MONEY, nullable=False)
     category_id = Column(Integer, ForeignKey(Categories.id), nullable=False)
     operation_type = Column(Enum(OperationType), nullable=False)

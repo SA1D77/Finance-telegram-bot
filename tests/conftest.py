@@ -5,12 +5,16 @@ from typing import Any, AsyncGenerator, List, Optional, Tuple
 # Config is read at import time, so test values must be set before any project import.
 os.environ.setdefault('TELEGRAM', '123456:TEST-TOKEN')
 os.environ.setdefault('DEBUG', '0')
-os.environ.setdefault('DB_URL', 'postgresql+asyncpg://test:test@localhost:5432/test')
+# Port 1: nothing listens there, so a test that forgets to stub the database fails fast
+# instead of reaching a real server on this machine.
+os.environ.setdefault('DB_URL', 'postgresql+asyncpg://test:test@127.0.0.1:1/test')
 os.environ.setdefault('REDIS_HOST', 'localhost')
 os.environ.setdefault('REDIS_PORT', '6379')
 os.environ.setdefault('CELERY_HOST', 'localhost')
 os.environ.setdefault('CELERY_PORT', '6379')
 os.environ.setdefault('OWNER_ID', '1001')
+# A non-UTC zone, so tests really exercise local/UTC conversion (UTC+5, no DST).
+os.environ.setdefault('TIMEZONE', 'Asia/Tashkent')
 
 import pytest  # noqa: E402
 from aiogram import Bot  # noqa: E402
