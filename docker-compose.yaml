@@ -8,6 +8,12 @@ services:
     env_file:
       - ./src/.env
     # No published ports: Postgres is reachable only inside the compose network.
+    # Ready only when it accepts connections (the first start initialises the database first).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 3s
+      timeout: 3s
+      retries: 40
     networks:
       - aiogram
 
@@ -28,8 +34,10 @@ services:
     networks:
       - aiogram
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:7.4-alpine
@@ -43,6 +51,11 @@ services:
     volumes:
       - redis-data:/data
     # No published ports: Redis is reachable only inside the compose network.
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$${REDIS_PASSWORD}\" ping | grep -q PONG"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
     networks:
       - aiogram
 
@@ -58,7 +71,10 @@ services:
     volumes:
       - .:/aiogram
     depends_on:
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - aiogram
 
@@ -75,7 +91,10 @@ services:
     volumes:
       - .:/aiogram
     depends_on:
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - aiogram
 
