@@ -5,7 +5,7 @@ import sys
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.types import BotCommand
+from aiogram.types import BotCommand, BotCommandScopeChat
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
@@ -14,6 +14,31 @@ from dispatcher import create_dispatcher
 
 # Redis db for FSM states, separate from the cache (db 3) and Celery (db 0).
 FSM_REDIS_DB = 4
+
+
+COMMANDS = {
+    'ru': ['История операций', 'Отменить последнюю операцию', 'Бюджет и лимиты на месяц', 'Аналитика за месяц',
+           'Регулярные операции', 'Цели накопления', 'Отчёт за период', 'Экспорт в CSV / XLSX'],
+    'uz': ['Amallar tarixi', "Oxirgi amalni bekor qilish", 'Oylik byudjet va limitlar', 'Oylik tahlil',
+           'Muntazam amallar', "Jamg'arma maqsadlari", 'Davr bo\'yicha hisobot', 'CSV / XLSX eksport'],
+    'en': ['Operation history', 'Undo the last operation', 'Monthly budget and limits', 'Monthly analytics',
+           'Recurring operations', 'Savings goals', 'Report for a period', 'Export to CSV / XLSX'],
+    'be': ['Гісторыя аперацый', 'Адмяніць апошнюю аперацыю', 'Бюджэт і ліміты на месяц', 'Аналітыка за месяц',
+           'Рэгулярныя аперацыі', 'Мэты назапашвання', 'Справаздача за перыяд', 'Экспарт у CSV / XLSX'],
+}
+COMMAND_NAMES = ['history', 'undo', 'budget', 'stats', 'recurring', 'goals', 'report', 'export']
+
+
+async def set_commands(bot: Bot) -> None:
+    """The / menu in each language; the owner also sees /backup."""
+    for lang, descriptions in COMMANDS.items():
+        commands = [BotCommand(command=name, description=text) for name, text in zip(COMMAND_NAMES, descriptions)]
+        await bot.set_my_commands(commands, language_code=lang)
+        if lang == 'ru':
+            await bot.set_my_commands(commands)  # default for every other language
+    owner_commands = [BotCommand(command=name, description=text) for name, text in zip(COMMAND_NAMES, COMMANDS['ru'])]
+    owner_commands.append(BotCommand(command='backup', description='Резервная копия сейчас'))
+    await bot.set_my_commands(owner_commands, scope=BotCommandScopeChat(chat_id=OWNER_ID))
 
 
 async def main() -> None:
@@ -31,17 +56,7 @@ async def main() -> None:
     storage = RedisStorage(redis=Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=FSM_REDIS_DB))
     dp = create_dispatcher(storage=storage, owner_id=OWNER_ID)
 
-    await bot.set_my_commands([
-        BotCommand(command='history', description='История операций'),
-        BotCommand(command='undo', description='Отменить последнюю операцию'),
-        BotCommand(command='budget', description='Бюджет и лимиты на месяц'),
-        BotCommand(command='stats', description='Аналитика за месяц'),
-        BotCommand(command='recurring', description='Регулярные операции'),
-        BotCommand(command='goals', description='Цели накопления'),
-        BotCommand(command='report', description='Отчёт за период'),
-        BotCommand(command='export', description='Экспорт в CSV / XLSX'),
-        BotCommand(command='backup', description='Резервная копия сейчас'),
-    ])
+    await set_commands(bot)
 
     try:
         await dp.start_polling(bot)

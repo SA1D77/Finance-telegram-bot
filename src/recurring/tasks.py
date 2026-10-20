@@ -21,7 +21,8 @@ async def build_messages(today) -> List[Tuple[int, str, Optional[object]]]:
 
     from config import FEATURE_HISTORY
     from i18n import i18n
-    from middleware.user import _get_user_lang
+    import money
+    from middleware.user import get_settings
     from . import service
     from .texts import summary
 
@@ -29,9 +30,13 @@ async def build_messages(today) -> List[Tuple[int, str, Optional[object]]]:
     langs = {}
 
     async def lang_of(user_id):
+        """The user's language; also switches amounts to the user's currency."""
         if user_id not in langs:
-            langs[user_id] = await _get_user_lang(user_id) or i18n.default_locale
-        return langs[user_id]
+            lang, currency = await get_settings(user_id)
+            langs[user_id] = (lang or i18n.default_locale, currency)
+        lang, currency = langs[user_id]
+        money.set_currency(currency)
+        return lang
 
     for item in await service.run_due(today):
         lang = await lang_of(item.template.user_id)

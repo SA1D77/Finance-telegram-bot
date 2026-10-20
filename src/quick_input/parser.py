@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from accounting.models import OperationType
-from telegram.validation import checked_amount, normalize_expression
+from telegram.validation import checked_amount, multiplier, normalize_expression
 from .calc import CalcError, evaluate, is_expression
 
 # Optional sign, then an expression made of digits, operators and spaces, then the words.
@@ -41,6 +41,11 @@ def parse_quick_entry(text: str) -> QuickEntry:
     except CalcError as error:
         raise AmountError(str(error)) from error
 
+    words = rest.split()
+    if words and multiplier(words[0]):  # "500к кафе", "1.5 млн машина"
+        value *= multiplier(words[0])
+        words = words[1:]
+
     amount = checked_amount(value)
     if amount is None:
         raise AmountError('amount out of range')
@@ -50,5 +55,5 @@ def parse_quick_entry(text: str) -> QuickEntry:
         operation_type=OperationType.income if sign == '+' else OperationType.expenditure,
         amount=amount,
         expression=expression if is_expression(expression) else None,
-        words=rest.split(),
+        words=words,
     )

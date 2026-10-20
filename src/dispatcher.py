@@ -33,6 +33,8 @@ def create_dispatcher(storage: BaseStorage, owner_id: int, public: bool = ACCESS
 
     # Same order the handler modules were imported in under aiogram 2,
     # so handler priority does not change.
+    from onboarding.handlers import router as onboarding_router
+    dp.include_router(onboarding_router)  # first: a new user picks language and currency
     dp.include_routers(
         category_handlers.router,
         common_handlers.router,

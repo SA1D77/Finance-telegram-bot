@@ -81,7 +81,7 @@ async def view_handler(callback_query: types.CallbackQuery):
 
 @router.callback_query(F.data == 'b:cat')
 async def choose_category(callback_query: types.CallbackQuery):
-    categories = await _show_all_categories(callback_query.from_user.id)
+    categories = await _show_all_categories(callback_query.from_user.id, 'expense')
     rows = [[_button(c.name.capitalize(), f'b:set:{c.id}')] for c in categories]
     rows.append([_button(_('⬅️ Назад'), 'b:view')])
     await callback_query.message.edit_reply_markup(reply_markup=types.InlineKeyboardMarkup(inline_keyboard=rows))

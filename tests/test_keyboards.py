@@ -33,8 +33,8 @@ async def test_categories_keyboard_has_cancel_and_callback_prefix():
         markup = await buttons.categories_buttons([SimpleNamespace(id=3, name='еда'), SimpleNamespace(id=7, name='кафе и рестораны')])
 
     rows = markup.inline_keyboard
-    assert [row[0].callback_data for row in rows] == ['category_3', 'category_7', 'cancel']
-    assert [row[0].text for row in rows][:2] == ['Еда', 'Кафе и рестораны']
+    assert [[b.callback_data for b in row] for row in rows] == [['category_3', 'category_7'], ['cancel']]
+    assert [b.text for b in rows[0]] == ['Еда', 'Кафе и рестораны']
 
 
 async def test_long_category_name_fits_callback_limit():

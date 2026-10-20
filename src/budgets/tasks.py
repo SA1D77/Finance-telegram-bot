@@ -16,7 +16,8 @@ async def check_and_notify(user_id: int, bot=None) -> int:
     """Sends one message per budget that crossed a new threshold; returns how many were sent."""
     import database
     from i18n import i18n
-    from middleware.user import _get_user_lang
+    import money
+    from middleware.user import get_settings
     from .service import new_alerts
     from .texts import alert_text
 
@@ -24,7 +25,9 @@ async def check_and_notify(user_id: int, bot=None) -> int:
         alerts = await new_alerts(user_id)
         if not alerts:
             return 0
-        lang = await _get_user_lang(user_id) or i18n.default_locale
+        lang, currency = await get_settings(user_id)
+        lang = lang or i18n.default_locale
+        money.set_currency(currency)  # amounts in this user's currency
         with i18n.context():
             texts = [alert_text(status, threshold, lambda message: i18n.gettext(message, locale=lang))
                      for status, threshold in alerts]

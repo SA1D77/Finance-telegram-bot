@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 from aiogram import F, Router, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 from accounting.models import OperationType
 from budgets.notify import schedule_budget_check
@@ -19,7 +20,9 @@ from money import current_currency, fmt
 from currency.codes import split_currency
 from currency.rates import RateUnavailable, convert, get_rate
 from i18n import _
-from middleware.accounting import _add_new_category, _add_operation, _find_active_category, _get_category, _show_all_categories
+from middleware.accounting import (
+    _add_new_category, _add_operation, _find_active_category, _get_category, _show_all_categories, kind_of,
+)
 from telegram import buttons
 from telegram.validation import checked_amount, normalize_category_name, normalize_comment, parse_category_id
 from .matching import match_category
@@ -33,6 +36,7 @@ CB_SAVE = 'qi:save'
 CB_NEW = 'qi:new'
 CB_PICK = 'qi:pick'
 CB_CATEGORY = 'qi:cat:'
+CB_NEW_NAME = 'qi:newname'
 
 
 def _summary(pending: Dict[str, Any], category_name: Optional[str] = None) -> str:
@@ -62,8 +66,15 @@ def _keyboard(rows) -> types.InlineKeyboardMarkup:
     return types.InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def _category_rows(categories):
-    return [[types.InlineKeyboardButton(text=c.name.capitalize(), callback_data=f'{CB_CATEGORY}{c.id}')] for c in categories]
+def _category_rows(categories, new_button: bool = False):
+    rows = buttons.category_grid(categories, CB_CATEGORY)
+    if new_button:
+        rows.append([types.InlineKeyboardButton(text=_('➕ Новая категория'), callback_data=CB_NEW_NAME)])
+    return rows
+
+
+class QuickInputState(StatesGroup):
+    new_category = State()
 
 
 def _original_fields(pending: Dict[str, Any]) -> Dict[str, Any]:
@@ -122,7 +133,8 @@ async def handle_quick_text(message: types.Message, state: FSMContext, text: str
                 return
             original = {'amount': str(entry.amount), 'currency': code, 'rate': str(rate)}
 
-    categories = await _show_all_categories(user_id)
+    # Only categories that fit: incomes for "+50000 ...", expenses otherwise (plus universal ones).
+    categories = await _show_all_categories(user_id, kind_of(entry.operation_type))
     match = match_category(words, categories)
     pending = {
         'type': entry.operation_type.name,
@@ -163,7 +175,7 @@ async def handle_quick_text(message: types.Message, state: FSMContext, text: str
         keyboard = _keyboard(rows)
     else:  # no category typed at all
         text = _summary(pending) + '\n\n' + _('Введите категорию')
-        keyboard = _keyboard(_category_rows(categories))
+        keyboard = _keyboard(_category_rows(categories, new_button=True))
 
     await state.update_data(**{PENDING_KEY: pending})
     await message.answer(text=text, reply_markup=keyboard)
@@ -221,9 +233,38 @@ async def new_category_handler(callback_query: types.CallbackQuery, state: FSMCo
         await callback_query.answer(text=_('Название категории должно быть от 1 до 64 символов'), show_alert=True)
         return
     user_id = callback_query.from_user.id
-    await _add_new_category(category_name=name, user_id=user_id)
+    await _add_new_category(category_name=name, user_id=user_id, kind=kind_of(OperationType[pending['type']]))
     category = await _find_active_category(name=name, user_id=user_id)
     await _finish(callback_query, state, pending, category)
+
+
+@router.callback_query(StateFilter(None), F.data == CB_NEW_NAME)
+async def new_category_name_start(callback_query: types.CallbackQuery, state: FSMContext):
+    pending = await _pending(callback_query, state)
+    if pending is None:
+        return
+    await state.set_state(QuickInputState.new_category)
+    await callback_query.message.edit_reply_markup(reply_markup=None)
+    await callback_query.message.answer(text=_('Введите название новой категории'), reply_markup=await buttons.get_button_cancel())
+    await callback_query.answer()
+
+
+@router.message(QuickInputState.new_category)
+async def new_category_name_input(message: types.Message, state: FSMContext):
+    pending = (await state.get_data()).get(PENDING_KEY)
+    name = normalize_category_name(message.text)
+    if pending is None:
+        await state.set_state(None)
+        return
+    if name is None:
+        await message.answer(text=_('Название категории должно быть от 1 до 64 символов'), reply_markup=await buttons.get_button_cancel())
+        return
+    user_id = message.from_user.id
+    await _add_new_category(category_name=name, user_id=user_id, kind=kind_of(OperationType[pending['type']]))
+    category = await _find_active_category(name=name, user_id=user_id)
+    await state.set_state(None)
+    await state.update_data(**{PENDING_KEY: None})
+    await _save(message, user_id, pending, category)
 
 
 @router.callback_query(StateFilter(None), F.data == CB_PICK)
@@ -231,9 +272,9 @@ async def pick_category_handler(callback_query: types.CallbackQuery, state: FSMC
     pending = await _pending(callback_query, state)
     if pending is None:
         return
-    categories = await _show_all_categories(callback_query.from_user.id)
+    categories = await _show_all_categories(callback_query.from_user.id, kind_of(OperationType[pending['type']]))
     await callback_query.message.edit_text(text=_summary(pending) + '\n\n' + _('Введите категорию'),
-                                           reply_markup=_keyboard(_category_rows(categories)))
+                                           reply_markup=_keyboard(_category_rows(categories, new_button=True)))
     await callback_query.answer()
 
 

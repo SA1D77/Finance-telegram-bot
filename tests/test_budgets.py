@@ -41,7 +41,7 @@ class FakeBudgets:
         name = self.categories.get(category_id) if user_id == USER_ID else None
         return SimpleNamespace(id=category_id, name=name) if name else None
 
-    async def show_categories(self, user_id):
+    async def show_categories(self, user_id, kind=None):
         return [SimpleNamespace(id=i, name=n) for i, n in self.categories.items()]
 
 
@@ -175,7 +175,7 @@ async def test_stranger_ignored(harness, fake):
 
 @pytest.fixture
 def quick(monkeypatch):
-    async def categories(user_id):
+    async def categories(user_id, kind=None):
         return [SimpleNamespace(id=1, name='кафе'), SimpleNamespace(id=2, name='зарплата')]
 
     async def add_operation(**kwargs):

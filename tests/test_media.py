@@ -85,7 +85,7 @@ def saved(monkeypatch):
         downloads.append(file_id)
         return b'media-bytes'
 
-    async def categories(user_id):
+    async def categories(user_id, kind=None):
         return [SimpleNamespace(id=1, name='кафе'), SimpleNamespace(id=2, name='продукты')]
 
     async def get_category(category_id, user_id):

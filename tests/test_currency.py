@@ -110,7 +110,7 @@ async def test_real_rates_source():
 def multi(monkeypatch, harness):
     saved = []
 
-    async def categories(user_id):
+    async def categories(user_id, kind=None):
         return [SimpleNamespace(id=1, name='отель')]
 
     async def add_operation(**kwargs):

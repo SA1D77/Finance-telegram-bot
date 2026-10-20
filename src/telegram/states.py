@@ -4,15 +4,18 @@ from aiogram.fsm.state import State, StatesGroup
 class IncomeState(StatesGroup):
     income_input = State()
     category_input = State()
+    new_category = State()
 
 
 class ExpenditureState(StatesGroup):
     expenditure_input = State()
     category_input = State()
+    new_category = State()
 
 
 class AddCategoryState(StatesGroup):
     add_categories_input = State()
+    kind = State()
 
 
 class DeleteCategoryState(StatesGroup):

@@ -11,7 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from accounting.models import OperationType
 from history.periods import parse_day
 from i18n import _, __
-from middleware.accounting import _get_category, _show_all_categories
+from middleware.accounting import _get_category, _show_all_categories, kind_of
 from quick_input.matching import match_category
 from quick_input.parser import AmountError, parse_quick_entry
 from telegram import buttons
@@ -150,7 +150,7 @@ async def entry_input(message: types.Message, state: FSMContext):
         await message.answer(text=_('Не получилось посчитать сумму. Пример: 500 кафе обед или 1200+350*2 продукты'),
                              reply_markup=await buttons.get_button_cancel())
         return
-    categories = await _show_all_categories(message.from_user.id)
+    categories = await _show_all_categories(message.from_user.id, kind_of(entry.operation_type))
     match = match_category(entry.words, categories)
     new = {'type': entry.operation_type.name, 'amount': str(entry.amount), 'comment': normalize_comment(match.rest)}
     if match.kind == 'exact':

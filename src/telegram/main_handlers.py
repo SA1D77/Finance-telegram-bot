@@ -15,14 +15,14 @@ from telegram.states import (
     ExpenditureState,
 )
 from .messages import FLOAT_NUMBER_ERROR
-from .validation import normalize_expression, parse_amount, parse_category_id
+from .validation import normalize_category_name, normalize_expression, parse_amount, parse_category_id
 from quick_input.calc import is_expression
 from middleware.accounting import (
     _get_balance,
     _add_income,
     _add_expenditure,
 )
-from middleware.accounting import _show_all_categories
+from middleware.accounting import _add_new_category, _find_active_category, _show_all_categories
 from middleware.general_handlers import category_does_not_exist
 from exception import CategoryDoesNotExist
 from budgets.notify import schedule_budget_check
@@ -66,7 +66,10 @@ async def balance_show_handler(message: types.Message):
 
     user_balance = await _get_balance(message.from_user.id)
 
-    await message.answer(text=str(user_balance), reply_markup=await buttons.get_button_manage_money())
+    from telegram.settings_handlers import approx_in
+    approx = await approx_in(user_balance)
+    text = f'<b>{fmt(user_balance)}</b>' + (f'\n{approx}' if approx else '')
+    await message.answer(text=text, reply_markup=await buttons.get_button_manage_money())
 
 
 async def _amount_input(message: types.Message, state: FSMContext, next_state) -> None:
@@ -76,12 +79,13 @@ async def _amount_input(message: types.Message, state: FSMContext, next_state) -
         return
 
     await state.set_state(next_state)
-    all_categories = await _show_all_categories(message.from_user.id)
+    kind = 'income' if next_state == IncomeState.category_input else 'expense'
+    all_categories = await _show_all_categories(message.from_user.id, kind)
     text = _('Введите категорию')
     expression = normalize_expression(message.text)
     if is_expression(expression):
         text = f'🧮 {escape(expression)} = <b>{fmt(total)}</b>\n\n' + text
-    await message.answer(text=text, reply_markup=await buttons.categories_buttons(categories=all_categories))
+    await message.answer(text=text, reply_markup=await buttons.categories_buttons(categories=all_categories, new_button=True))
     # FSM data is stored as JSON in Redis, so the Decimal travels as a string.
     await state.update_data(total=str(total))
 
@@ -96,19 +100,29 @@ async def expenditure_input_handler(message: types.Message, state: FSMContext):
     await _amount_input(message, state, ExpenditureState.category_input)
 
 
+async def _save(message: types.Message, state: FSMContext, user_id: int, category, income: bool, edit: bool) -> None:
+    total = Decimal((await state.get_data())['total'])
+    if income:
+        operation_id = await _add_income(user_id=user_id, category_id=category.id, quantity=total)
+    else:
+        operation_id = await _add_expenditure(user_id=user_id, category_id=category.id, quantity=total)
+        await schedule_budget_check(user_id)
+
+    if edit:
+        await message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
+    else:
+        await message.answer(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
+    label = _('ДОХОД') if income else _('РАСХОД')
+    await message.answer(text=label + f' <b>{fmt(total)} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
+    await state.clear()
+
+
 @router.callback_query(F.data.startswith('category'), IncomeState.category_input)
 async def income_category_input_handler(callback_query: types.CallbackQuery, state: FSMContext):
     category = await _own_category(callback_query, state)
     if category is None:
         return
-
-    total = Decimal((await state.get_data())['total'])
-    operation_id = await _add_income(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
-
-    await callback_query.message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
-    await callback_query.message.answer(text=_('ДОХОД') + f' <b>{fmt(total)} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
-
-    await state.clear()
+    await _save(callback_query.message, state, callback_query.from_user.id, category, income=True, edit=True)
     await callback_query.answer()
 
 
@@ -117,13 +131,26 @@ async def expenditure_category_input_handler(callback_query: types.CallbackQuery
     category = await _own_category(callback_query, state)
     if category is None:
         return
-
-    total = Decimal((await state.get_data())['total'])
-    operation_id = await _add_expenditure(user_id=callback_query.from_user.id, category_id=category.id, quantity=total)
-    await schedule_budget_check(callback_query.from_user.id)
-
-    await callback_query.message.edit_text(text=_('Новая запись:'), reply_markup=buttons.undo_markup(operation_id))
-    await callback_query.message.answer(text=_('РАСХОД') + f' <b>{fmt(total)} {escape(category.name)}</b>', reply_markup=await buttons.get_button_manage_money())
-
-    await state.clear()
+    await _save(callback_query.message, state, callback_query.from_user.id, category, income=False, edit=True)
     await callback_query.answer()
+
+
+@router.callback_query(F.data == 'newcat', StateFilter(IncomeState.category_input, ExpenditureState.category_input))
+async def new_category_start(callback_query: types.CallbackQuery, state: FSMContext):
+    income = await state.get_state() == IncomeState.category_input.state
+    await state.set_state(IncomeState.new_category if income else ExpenditureState.new_category)
+    await callback_query.message.edit_text(text=_('Введите название новой категории'), reply_markup=await buttons.get_button_cancel())
+    await callback_query.answer()
+
+
+@router.message(StateFilter(IncomeState.new_category, ExpenditureState.new_category))
+async def new_category_input(message: types.Message, state: FSMContext):
+    income = await state.get_state() == IncomeState.new_category.state
+    name = normalize_category_name(message.text)
+    if name is None:
+        await message.answer(text=_('Название категории должно быть от 1 до 64 символов'), reply_markup=await buttons.get_button_cancel())
+        return
+    user_id = message.from_user.id
+    await _add_new_category(category_name=name, user_id=user_id, kind='income' if income else 'expense')
+    category = await _find_active_category(name=name, user_id=user_id)
+    await _save(message, state, user_id, category, income=income, edit=False)

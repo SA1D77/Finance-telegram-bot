@@ -22,7 +22,7 @@ class FakeDB:
         self.categories[99] = SimpleNamespace(id=99, name='чужая', user_id=2002)  # someone else's
         self.saved = []
 
-    async def show(self, user_id):
+    async def show(self, user_id, kind=None):
         return [c for c in self.categories.values() if c.user_id == user_id]
 
     async def get(self, category_id, user_id):
@@ -32,7 +32,7 @@ class FakeDB:
     async def find(self, name, user_id):
         return next((c for c in self.categories.values() if c.name == name and c.user_id == user_id), None)
 
-    async def add_category(self, category_name, user_id):
+    async def add_category(self, category_name, user_id, kind=None):
         if not await self.find(category_name, user_id):
             new_id = max(self.categories) + 1
             self.categories[new_id] = SimpleNamespace(id=new_id, name=category_name, user_id=user_id)
@@ -126,7 +126,7 @@ async def test_unknown_category_can_be_created(harness, db):
 async def test_amount_only_lets_user_pick_category(harness, db):
     await harness.feed(make_message('250'))
 
-    assert [data for _, data in last_buttons(harness)] == ['qi:cat:1', 'qi:cat:2', 'qi:cat:3', 'qi:cat:4', 'qi:cat:5', 'cancel']
+    assert [data for _, data in last_buttons(harness)] == ['qi:cat:1', 'qi:cat:2', 'qi:cat:3', 'qi:cat:4', 'qi:cat:5', 'qi:newname', 'cancel']
 
     await harness.feed(make_callback('qi:cat:3'))
 
@@ -139,7 +139,7 @@ async def test_pick_shows_all_categories(harness, db):
 
     edit = harness.session.requests[-2]  # edit_text, then answer_callback_query
     assert [b.callback_data for row in edit.reply_markup.inline_keyboard for b in row][-1] == 'cancel'
-    assert len(edit.reply_markup.inline_keyboard) == 6
+    assert len(edit.reply_markup.inline_keyboard) == 5  # 3 rows of two, new category, cancel
 
 
 @pytest.mark.parametrize('data', ['qi:cat:99', 'qi:cat:abc', 'qi:cat:', 'qi:cat:12345'])
@@ -203,7 +203,7 @@ async def test_stranger_quick_entry_is_ignored(harness, db):
 
 
 async def test_button_flow_accepts_calculation(harness, monkeypatch, db):
-    async def show(user_id):
+    async def show(user_id, kind=None):
         return list((await db.show(user_id)))
 
     monkeypatch.setattr(main_handlers, '_show_all_categories', show)

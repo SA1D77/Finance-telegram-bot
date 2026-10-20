@@ -30,9 +30,12 @@ router = Router(name='category')
 @router.message(F.text == __('🗂 Категории'), StateFilter(None))
 async def categories_show_handler(message: types.Message):
     all_categories = await _show_all_categories(message.from_user.id)
+    groups = [(_('💸 Для расходов:'), 'expense'), (_('💰 Для доходов:'), 'income'), (_('↔️ Для всего:'), None)]
     msg = str()
-    for category in all_categories:
-        msg += '\n<b>📌 ' + escape(category.name.capitalize()) + '\n</b>'
+    for title, kind in groups:
+        names = [escape(c.name.capitalize()) for c in all_categories if c.kind == kind]
+        if names:
+            msg += f'\n<b>{title}</b>\n' + '\n'.join(f'📌 {name}' for name in names) + '\n'
 
     await message.answer(text=_('Вот список текущих категорий:\n') + msg, reply_markup=await buttons.get_button_manage_money())
 
@@ -66,11 +69,32 @@ async def add_categories_input_handler(message: types.Message, state: FSMContext
         await category_already_exist(category=name, user_id=message.from_user.id)
     except CategoryAlreadyExist:
         await message.answer(text=_('Посмотрите внимательно, кажется такая категория уже существует!'), reply_markup=await buttons.get_button_manage_money())
-    else:
-        await _add_new_category(category_name=name, user_id=message.from_user.id)
-        await message.answer(text=_('Категория успешно добавлена!'), reply_markup=await buttons.get_button_manage_money())
-    finally:
         await state.clear()
+        return
+
+    await state.update_data(new_category_name=name)
+    await state.set_state(AddCategoryState.kind)
+    markup = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=_('💸 Для расходов'), callback_data='addcat:expense'),
+         types.InlineKeyboardButton(text=_('💰 Для доходов'), callback_data='addcat:income')],
+        [types.InlineKeyboardButton(text=_('↔️ Для всего'), callback_data='addcat:both')],
+        [types.InlineKeyboardButton(text=_('⬅️ Отмена'), callback_data='cancel')],
+    ])
+    await message.answer(text=_('Для чего эта категория?'), reply_markup=markup)
+
+
+@router.callback_query(F.data.startswith('addcat:'), AddCategoryState.kind)
+async def add_category_kind(callback_query: types.CallbackQuery, state: FSMContext):
+    kind = {'addcat:expense': 'expense', 'addcat:income': 'income', 'addcat:both': None}.get(callback_query.data, 'invalid')
+    name = (await state.get_data()).get('new_category_name')
+    if kind == 'invalid' or not name:
+        await callback_query.answer()
+        return
+    await _add_new_category(category_name=name, user_id=callback_query.from_user.id, kind=kind)
+    await state.clear()
+    await callback_query.message.edit_text(text=_('Категория успешно добавлена!'))
+    await callback_query.message.answer(text=_('⚙️ Главное меню'), reply_markup=await buttons.get_button_manage_money())
+    await callback_query.answer()
 
 
 @router.callback_query(F.data.startswith('category'), DeleteCategoryState.delete_categories_input)

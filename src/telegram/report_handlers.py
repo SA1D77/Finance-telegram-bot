@@ -24,6 +24,7 @@ from history.periods import parse_date_range, period_range
 from report.email_send import email_report, is_valid_email
 from report.files import build_report_files, remove_report_files, serialize_accounts
 from timeutils import utc_now
+from config import ACCESS_MODE, OWNER_ID
 
 router = Router(name='report')
 
@@ -46,12 +47,19 @@ async def _report_rows(state: FSMContext, user_id: int):
     return serialize_accounts(accounts)
 
 
-async def _ask_destination(message: types.Message, state: FSMContext, since: Optional[datetime], until: Optional[datetime]):
+def _email_allowed(user_id: int) -> bool:
+    # In a public bot only the owner may send mail through the owner's SMTP account.
+    return ACCESS_MODE != 'public' or user_id == OWNER_ID
+
+
+async def _ask_destination(message: types.Message, state: FSMContext, since: Optional[datetime], until: Optional[datetime],
+                           user_id: int):
     # Files are built right before sending, so there is no race with a background task
     # and nothing is left on disk afterwards.
     await state.update_data(since=_iso(since), until=_iso(until))
     await state.set_state(ReportState.send_place)
-    await message.answer(text=_('Выберите место для отправки отчета'), reply_markup=await buttons.get_report_buttons())
+    await message.answer(text=_('Выберите место для отправки отчета'),
+                         reply_markup=await buttons.get_report_buttons(email=_email_allowed(user_id)))
 
 
 @router.message(Command('report'), StateFilter(None))
@@ -78,7 +86,7 @@ async def report(callback_query: types.CallbackQuery, state: FSMContext):
         return
 
     await callback_query.message.edit_text(text=_('Отчет сформирован!'))
-    await _ask_destination(callback_query.message, state, since, until)
+    await _ask_destination(callback_query.message, state, since, until, callback_query.from_user.id)
     await callback_query.answer()
 
 
@@ -89,7 +97,7 @@ async def custom_range_input(message: types.Message, state: FSMContext):
         await message.answer(text=_('Не понял период. Примеры: 01.09.2026-30.09.2026, 01.09-30.09, 05.10.2026'),
                              reply_markup=await buttons.get_button_cancel())
         return
-    await _ask_destination(message, state, *period)
+    await _ask_destination(message, state, *period, message.from_user.id)
 
 
 @router.message(ReportState.send_place)
@@ -97,7 +105,7 @@ async def report_send_place(message: types.Message, state: FSMContext):
     user_input = message.text
     user_id = message.from_user.id
 
-    if user_input == _('📧 Почта'):
+    if user_input == _('📧 Почта') and _email_allowed(user_id):
         response = await _get_users_email(user_id=user_id)
         if response:
             await state.set_state(EmailState.reuse_email)

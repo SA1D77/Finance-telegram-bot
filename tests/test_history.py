@@ -85,7 +85,7 @@ class FakeHistory:
             return SimpleNamespace(id=category_id, name=self.categories[category_id])
         return None
 
-    async def show_categories(self, user_id):
+    async def show_categories(self, user_id, kind=None):
         return await self.used_categories(user_id)
 
 
@@ -304,7 +304,7 @@ async def test_undo_command_asks_about_last_operation(harness, hist):
 
 
 async def test_any_history_button_leaves_edit_mode(harness, hist, monkeypatch):
-    async def no_categories(user_id):
+    async def no_categories(user_id, kind=None):
         return []
 
     monkeypatch.setattr(qi, '_show_all_categories', no_categories)  # "777" becomes a quick entry
@@ -351,7 +351,7 @@ async def test_button_flow_save_offers_undo(harness, monkeypatch):
 async def test_quick_entry_save_offers_undo(harness, monkeypatch):
     new_id = uuid.uuid4()
 
-    async def categories(user_id):
+    async def categories(user_id, kind=None):
         return [SimpleNamespace(id=1, name='кафе')]
 
     async def add_operation(**kwargs):

@@ -100,8 +100,10 @@ async def format_chosen(callback_query: types.CallbackQuery, state: FSMContext):
 
 
 @router.message(Command('backup'), StateFilter(None))
-async def backup_command(message: types.Message):
-    if not FEATURE_BACKUP:
+async def backup_command(message: types.Message, is_owner: bool = False):
+    # The copy holds every user's data, so only the owner can ask for it.
+    if not FEATURE_BACKUP or not is_owner:
+        await message.answer(text=_('Эта команда доступна только владельцу бота.'))
         return
     from backup.tasks import queue_backup
     if await queue_backup(message.chat.id):

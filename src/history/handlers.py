@@ -20,7 +20,7 @@ from accounting.models import OperationType
 from budgets.notify import schedule_budget_check
 from money import fmt
 from i18n import _, __
-from middleware.accounting import _get_category, _show_all_categories
+from middleware.accounting import _get_category, _show_all_categories, kind_of
 from telegram import buttons
 from telegram.validation import normalize_comment, parse_amount, parse_category_id
 from timeutils import format_local
@@ -328,7 +328,7 @@ async def edit_category_start(callback_query: types.CallbackQuery, state: FSMCon
     if row is None:
         return
     await state.update_data(**{EDIT_KEY: row.id.hex})
-    categories = await _show_all_categories(callback_query.from_user.id)
+    categories = await _show_all_categories(callback_query.from_user.id, kind_of(row.operation_type))
     rows = [[_button(('• ' if c.id == row.category_id else '') + c.name.capitalize(), f'h:setcat:{c.id}')] for c in categories]
     rows.append([_button(_('⬅️ Назад'), f'h:op:{row.id.hex}')])
     await callback_query.message.edit_reply_markup(reply_markup=types.InlineKeyboardMarkup(inline_keyboard=rows))

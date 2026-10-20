@@ -17,7 +17,7 @@ SALARY = SimpleNamespace(id=2, name='зарплата')
 def use_categories(monkeypatch, *categories):
     by_id = {c.id: c for c in categories}
 
-    async def show(user_id):
+    async def show(user_id, kind=None):
         assert user_id == USER_ID
         return list(categories)
 
@@ -50,8 +50,8 @@ async def test_full_income_flow_saves_operation(harness, monkeypatch):
     assert await harness.state() == IncomeState.category_input.state
     assert (await harness.data())['total'] == '150.50'
     keyboard = harness.session.requests[-1].reply_markup.inline_keyboard
-    assert [row[0].callback_data for row in keyboard] == ['category_1', 'category_2', 'cancel']
-    assert [row[0].text for row in keyboard][:2] == ['Еда', 'Зарплата']
+    assert [[b.callback_data for b in row] for row in keyboard] == [['category_1', 'category_2'], ['newcat'], ['cancel']]
+    assert [b.text for b in keyboard[0]] == ['Еда', 'Зарплата']
 
     await harness.feed(make_callback('category_2'))
 
@@ -80,7 +80,7 @@ async def test_menu_button_leaves_unfinished_dialog(harness, monkeypatch, stuck_
     await harness.feed(make_message('📊 Баланс'))
 
     assert await harness.state() is None
-    assert harness.session.texts() == ['ВАШ ТЕКУЩИЙ БАЛАНС:', '10.00']
+    assert harness.session.texts() == ['ВАШ ТЕКУЩИЙ БАЛАНС:', '<b>10</b>']
 
 
 async def test_command_leaves_unfinished_dialog(harness):
@@ -124,7 +124,7 @@ async def test_balance_is_shown_exactly(harness, monkeypatch):
 
     await harness.feed(make_message('📊 Баланс'))
 
-    assert harness.session.texts() == ['ВАШ ТЕКУЩИЙ БАЛАНС:', '1749.60']
+    assert harness.session.texts() == ['ВАШ ТЕКУЩИЙ БАЛАНС:', '<b>1 749.60</b>']
 
 
 async def test_cancel_works_in_any_state(harness):

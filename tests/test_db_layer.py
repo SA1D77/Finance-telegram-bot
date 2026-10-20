@@ -313,7 +313,7 @@ async def test_check_and_notify_sends_once_in_user_language(db):
 
     assert await check_and_notify(OWNER, bot=FakeBot()) == 1
     assert await check_and_notify(OWNER, bot=FakeBot()) == 0
-    assert sent == [(OWNER, '🟡 Кафе: spent 850.00 of 1000.00 (85%). 150.00 left.')]
+    assert sent == [(OWNER, '🟡 Кафе: spent 850 of 1\xa0000 (85%). 150 left.')]
 
 
 async def test_analytics_queries(db):
@@ -438,7 +438,7 @@ async def test_recurring_worker_sends_messages(db):
 
     assert await tasks.run(bot=FakeBot(), today=date(2026, 10, 22)) == 1
     chat_id, text, markup = sent[0]
-    assert chat_id == OWNER and 'Добавлено по расписанию (22.10.2026)' in text and '5000.00 интернет' in text
+    assert chat_id == OWNER and 'Добавлено по расписанию (22.10.2026)' in text and '5\xa0000 интернет' in text
     assert markup.inline_keyboard[0][0].callback_data.startswith('h:undo:')
     assert await tasks.run(bot=FakeBot(), today=date(2026, 10, 22)) == 0
 
@@ -522,3 +522,27 @@ async def test_original_currency_is_stored_and_cleared(db):
     await queries.update_operation(OWNER, op_id, quantity=Decimal('1.00'), original_amount=None, original_currency=None, rate=None)
     row = await queries.get_operation(OWNER, op_id)
     assert (row.quantity, row.original_currency) == (Decimal('1.00'), None)
+
+
+async def test_seed_default_categories_and_kind_filter(db):
+    await user.ensure_user(OWNER, None)
+    assert await accounting.seed_default_categories(OWNER, 'uz') == 15
+    assert await accounting.seed_default_categories(OWNER, 'uz') == 0  # never twice
+
+    income = [c.name for c in await accounting._show_all_categories(OWNER, 'income')]
+    expense = [c.name for c in await accounting._show_all_categories(OWNER, 'expense')]
+    assert income == ['maosh', "qo'shimcha ish", 'keshbek', 'boshqa daromad']
+    assert 'taksi' in expense and 'maosh' not in expense
+
+    await accounting._add_new_category('universal', OWNER, kind=None)
+    assert 'universal' in [c.name for c in await accounting._show_all_categories(OWNER, 'income')]
+    assert 'universal' in [c.name for c in await accounting._show_all_categories(OWNER, 'expense')]
+
+
+async def test_user_settings_round_trip(db):
+    await user.ensure_user(OWNER, None)
+    assert await user.get_settings(OWNER) == (None, None)
+    await user._language_locale(OWNER, 'uz')
+    await user.set_currency(OWNER, 'UZS')
+    assert await user.get_settings(OWNER) == ('uz', 'UZS')
+    assert await user.get_settings(OTHER) == (None, None)

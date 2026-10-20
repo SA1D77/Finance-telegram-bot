@@ -117,7 +117,7 @@ class FakeRecurring:
     async def remove(self, user_id, template_id):
         return self.rows.pop(template_id, None) is not None
 
-    async def categories_list(self, user_id):
+    async def categories_list(self, user_id, kind=None):
         return [SimpleNamespace(id=i, name=n) for i, n in self.categories.items()]
 
     async def get_category(self, category_id, user_id):
