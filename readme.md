@@ -45,6 +45,10 @@ Copy 📜 `src/.env.example` to `src/.env` and fill it in. Every variable is des
 
 > If the Postgres volume already exists, changing `POSTGRES_PASSWORD` in `.env` does not change the database password. Change it inside the database (`ALTER USER ... PASSWORD ...`) and then update `.env` and `DB_URL`.
 
+> Upgrading a database created by the old (username-based) bot: the migration needs `OWNER_ID`, and `OWNER_USERNAME` (your old Telegram username) when the database has more than one user. It copies the data, checks the row counts and is reversible with `alembic downgrade 8ca044247220`. Back up first: `docker compose exec db pg_dump -U <user> <db> > backup.sql`.
+
+Windows quick start in Russian: [ЗАПУСК.md](ЗАПУСК.md) (`start.bat` / `stop.bat`).
+
 ### Security notes
 
 - Postgres and Redis publish no ports; they are reachable only inside the compose network.

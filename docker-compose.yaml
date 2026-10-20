@@ -17,7 +17,7 @@ services:
     image: aiogram
     container_name: aiogram_app
     restart: unless-stopped
-    command: ["/aiogram/scripts/entrypoint.sh"]
+    command: ["bash", "/aiogram/scripts/entrypoint.sh"]
     env_file:
       - ./src/.env
     volumes:
