@@ -4,7 +4,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
 
 import asyncio
+from datetime import datetime, timedelta
 from html import escape
+from typing import Optional
 
 from timeutils import format_local
 
@@ -15,20 +17,40 @@ from telegram.states import (
     EmailState
 )
 from middleware.user import _insert_user_email, _get_users_email, _get_user_lang
-from middleware.accounting import _get_accounts
+from middleware.accounting import _get_accounts, _get_accounts_between
 from exception import EmailAlreadyExist
+from history.periods import parse_date_range, period_range
 from report.email_send import email_report, is_valid_email
 from report.files import build_report_files, remove_report_files, serialize_accounts
+from timeutils import utc_now
 
 router = Router(name='report')
 
-REPORT_PERIODS = {'1', '30', '365'}
+CALENDAR_PERIODS = {'today', 'week', 'month', 'year'}
+LEGACY_PERIODS = {'1', '30', '365'}  # "last N days" buttons in messages sent before the update
+
+
+def _iso(value: Optional[datetime]) -> Optional[str]:
+    return value.isoformat() if value else None
 
 
 async def _report_rows(state: FSMContext, user_id: int):
     data = await state.get_data()
-    accounts = await _get_accounts(user_id=user_id, time=data.get('time'))
+    if 'since' in data:
+        since = datetime.fromisoformat(data['since']) if data['since'] else None
+        until = datetime.fromisoformat(data['until']) if data['until'] else None
+        accounts = await _get_accounts_between(user_id=user_id, since=since, until=until)
+    else:
+        accounts = await _get_accounts(user_id=user_id, time=data.get('time'))
     return serialize_accounts(accounts)
+
+
+async def _ask_destination(message: types.Message, state: FSMContext, since: Optional[datetime], until: Optional[datetime]):
+    # Files are built right before sending, so there is no race with a background task
+    # and nothing is left on disk afterwards.
+    await state.update_data(since=_iso(since), until=_iso(until))
+    await state.set_state(ReportState.send_place)
+    await message.answer(text=_('Выберите место для отправки отчета'), reply_markup=await buttons.get_report_buttons())
 
 
 @router.message(Command('report'), StateFilter(None))
@@ -40,16 +62,33 @@ async def run_report(message: types.Message, state: FSMContext):
 @router.callback_query(F.data.startswith('time'), ReportState.time_interval)
 async def report(callback_query: types.CallbackQuery, state: FSMContext):
     text = callback_query.data.replace('time_', '').lower()
-    if text not in REPORT_PERIODS:
+    if text == 'custom':
+        await state.set_state(ReportState.custom_range)
+        await callback_query.message.edit_text(text=_('Введите период: 01.09.2026-30.09.2026, 01.09-30.09 или одну дату'),
+                                               reply_markup=await buttons.get_button_cancel())
+        await callback_query.answer()
+        return
+    if text in CALENDAR_PERIODS:
+        since, until = period_range(text)
+    elif text in LEGACY_PERIODS:
+        since, until = utc_now() - timedelta(days=int(text)), None
+    else:
         await callback_query.answer()
         return
 
-    # Files are built right before sending, so there is no race with a background task
-    # and nothing is left on disk afterwards.
-    await state.update_data(time=text)
-    await state.set_state(ReportState.send_place)
     await callback_query.message.edit_text(text=_('Отчет сформирован!'))
-    await callback_query.message.answer(text=_('Выберите место для отправки отчета'), reply_markup=await buttons.get_report_buttons())
+    await _ask_destination(callback_query.message, state, since, until)
+    await callback_query.answer()
+
+
+@router.message(ReportState.custom_range)
+async def custom_range_input(message: types.Message, state: FSMContext):
+    period = parse_date_range(message.text)
+    if period is None:
+        await message.answer(text=_('Не понял период. Примеры: 01.09.2026-30.09.2026, 01.09-30.09, 05.10.2026'),
+                             reply_markup=await buttons.get_button_cancel())
+        return
+    await _ask_destination(message, state, *period)
 
 
 @router.message(ReportState.send_place)
@@ -77,6 +116,8 @@ async def report_send_place(message: types.Message, state: FSMContext):
             await message.answer_photo(photo=FSInputFile(files.expenditure_diagram))
             await message.answer(text=_('ДОХОД'), reply_markup=await buttons.get_button_manage_money())
             await message.answer_photo(photo=FSInputFile(files.income_diagram))
+            if files.dynamics_diagram:
+                await message.answer_photo(photo=FSInputFile(files.dynamics_diagram), caption=_('📊 Динамика по месяцам'))
         finally:
             remove_report_files(files)
         await state.clear()

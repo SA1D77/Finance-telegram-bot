@@ -1,6 +1,8 @@
 """The database stores naive UTC timestamps; the user sees and types local time."""
+import calendar
 import logging
 from datetime import datetime, timezone
+from typing import Tuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from config import TIMEZONE
@@ -15,6 +17,7 @@ def _zone(name: str) -> ZoneInfo:
 
 
 LOCAL_TZ = _zone(TIMEZONE)
+TIMEZONE_NAME = LOCAL_TZ.key  # validated name, safe to pass to PostgreSQL's timezone()
 
 
 def utc_now() -> datetime:
@@ -38,3 +41,19 @@ def to_utc_naive(local: datetime) -> datetime:
 
 def format_local(utc_naive: datetime, with_year: bool = True) -> str:
     return to_local(utc_naive).strftime('%d.%m.%Y %H:%M' if with_year else '%d.%m %H:%M')
+
+
+def month_range(year: int, month: int) -> Tuple[datetime, datetime]:
+    """[start, end) of a local calendar month as naive UTC."""
+    start = datetime(year, month, 1, tzinfo=LOCAL_TZ)
+    end = datetime(year + (month == 12), month % 12 + 1, 1, tzinfo=LOCAL_TZ)
+    return to_utc_naive(start), to_utc_naive(end)
+
+
+def days_in_month(year: int, month: int) -> int:
+    return calendar.monthrange(year, month)[1]
+
+
+def shift_month(year: int, month: int, delta: int) -> Tuple[int, int]:
+    index = year * 12 + (month - 1) + delta
+    return index // 12, index % 12 + 1

@@ -5,7 +5,7 @@ from typing import List, Optional
 from sqlalchemy import case, func, insert, select, update, desc
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from accounting.models import Categories, Accounting, OperationType
 from timeutils import utc_now
@@ -85,6 +85,19 @@ async def _add_income(user_id: int, category_id: int, quantity: Decimal) -> uuid
 
 async def _add_expenditure(user_id: int, category_id: int, quantity: Decimal) -> uuid.UUID:
     return await _add_operation(user_id=user_id, category_id=category_id, quantity=quantity, operation_type=OperationType.expenditure)
+
+
+async def _get_accounts_between(user_id: int, since: Optional[datetime], until: Optional[datetime]):
+    """Report rows (see _get_accounts) in [since, until); None means open-ended. Oldest first."""
+    statement = (select(Accounting.created_at, Accounting.quantity, Accounting.operation_type, Accounting.comment,
+                        Categories.name.label('categories'))
+                 .join(Categories, Categories.id == Accounting.category_id)
+                 .where(Accounting.user_id == user_id))
+    if since is not None:
+        statement = statement.where(Accounting.created_at >= since)
+    if until is not None:
+        statement = statement.where(Accounting.created_at < until)
+    return await _execute_select_rows(statement.order_by(Accounting.created_at))
 
 
 async def _get_accounts(user_id: int, time: str):

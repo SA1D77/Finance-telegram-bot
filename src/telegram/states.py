@@ -24,6 +24,7 @@ class ReportState(StatesGroup):
     time_interval = State()
     email = State()
     remember_email = State()
+    custom_range = State()
 
 
 class EmailState(StatesGroup):

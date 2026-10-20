@@ -1,6 +1,6 @@
 """History periods and dates typed by the user, both in the local time zone."""
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Optional, Tuple
 
 from timeutils import LOCAL_TZ, local_now, to_local, to_utc_naive
@@ -60,3 +60,41 @@ def parse_user_date(text: Optional[str], original_utc: datetime, now: Optional[d
     if local.year < _EARLIEST_YEAR or local.date() > now.date() + timedelta(days=1):
         return None
     return to_utc_naive(local)
+
+
+_DAY_RE = re.compile(r'^(\d{1,2})\.(\d{1,2})(?:\.(\d{2}|\d{4}))?$')
+_RANGE_SPLIT_RE = re.compile(r'\s*[-–—]\s*')
+MAX_RANGE_DAYS = 3660  # about ten years
+
+
+def _parse_day(text: str, now: datetime) -> Optional[date]:
+    match = _DAY_RE.match(text)
+    if match is None:
+        return None
+    day, month, year = match.groups()
+    year = now.year if year is None else int(year) + (2000 if len(year) == 2 else 0)
+    try:
+        return date(year, int(month), int(day))
+    except ValueError:
+        return None
+
+
+def parse_date_range(text: Optional[str], now: Optional[datetime] = None) -> Optional[Tuple[datetime, datetime]]:
+    """"01.09.2026-30.09.2026", "01.09-30.09" or one date -> [since, until) as naive UTC, whole local days."""
+    if not text:
+        return None
+    now = now or local_now()
+    parts = _RANGE_SPLIT_RE.split(text.strip())
+    if len(parts) not in (1, 2):
+        return None
+    days = [_parse_day(part, now) for part in parts]
+    if None in days:
+        return None
+    start, end = days[0], days[-1]
+    if start > end or start.year < _EARLIEST_YEAR or end > now.date() + timedelta(days=1):
+        return None
+    if (end - start).days > MAX_RANGE_DAYS:
+        return None
+    since = datetime.combine(start, time(), tzinfo=LOCAL_TZ)
+    until = datetime.combine(end + timedelta(days=1), time(), tzinfo=LOCAL_TZ)
+    return to_utc_naive(since), to_utc_naive(until)

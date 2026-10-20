@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from accounting.models import Accounting, Categories, OperationType
 from middleware.service import _execute_insert_update_delete_command, _execute_scalar, _execute_select_rows
-from timeutils import LOCAL_TZ, local_now, to_utc_naive
+from timeutils import days_in_month, local_now, month_range
 from .models import Budget, BudgetAlert
 
 THRESHOLDS = (80, 100)
@@ -36,16 +36,14 @@ class BudgetStatus:
 def month_bounds(now: Optional[datetime] = None) -> Tuple[str, datetime, datetime]:
     """("2026-10", since, until) for the local month; bounds as naive UTC."""
     now = now or local_now()
-    start = datetime(now.year, now.month, 1, tzinfo=LOCAL_TZ)
-    end = datetime(now.year + (now.month == 12), now.month % 12 + 1, 1, tzinfo=LOCAL_TZ)
-    return f'{now.year:04d}-{now.month:02d}', to_utc_naive(start), to_utc_naive(end)
+    since, until = month_range(now.year, now.month)
+    return f'{now.year:04d}-{now.month:02d}', since, until
 
 
 def days_left(now: Optional[datetime] = None) -> int:
     """Days remaining in the local month, today included."""
     now = now or local_now()
-    _, since, until = month_bounds(now)
-    return (until - since).days - now.day + 1
+    return days_in_month(now.year, now.month) - now.day + 1
 
 
 async def set_budget(user_id: int, category_id: Optional[int], amount: Decimal) -> None:

@@ -28,7 +28,8 @@ def email_template(files: ReportFiles, user_email: str):
         part = MIMEApplication(f.read(), name=basename(files.table))
         msg.attach(part)
 
-    for path in (files.income_diagram, files.expenditure_diagram, files.general_diagram):
+    diagrams = [files.income_diagram, files.expenditure_diagram, files.general_diagram, files.dynamics_diagram]
+    for path in filter(None, diagrams):
         with open(path, 'rb') as image_file:
             image = MIMEImage(image_file.read(), name=basename(path))
             msg.attach(image)

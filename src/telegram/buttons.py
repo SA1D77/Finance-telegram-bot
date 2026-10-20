@@ -3,7 +3,7 @@ from typing import Optional
 
 from aiogram import types
 
-from config import FEATURE_BUDGETS, FEATURE_HISTORY
+from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY
 from i18n import _
 
 
@@ -22,12 +22,15 @@ async def get_button_manage_money(lang=None):
         first_row.append(types.KeyboardButton(text=_('🎯 Бюджет', locale=lang)))
     button_settings = types.KeyboardButton(text=_('⚙️ Настройки', locale=lang))
     last_button = types.KeyboardButton(text=_('🕒 Последние 10 операций'))
+    last_row = [button_settings, last_button]
+    if FEATURE_ANALYTICS:
+        last_row.append(types.KeyboardButton(text=_('📈 Аналитика', locale=lang)))
 
     button_manager = types.ReplyKeyboardMarkup(
         keyboard=[first_row,
                   [button_income, button_expense],
                   [button_show_categories, button_add_category, button_delete_category],
-                  [button_settings, last_button]],
+                  last_row],
         resize_keyboard=True,
         input_field_placeholder=_('Выберите действие', locale=lang)
     )
@@ -90,11 +93,14 @@ async def settings_button():
 
 
 async def time_interval_buttons():
-    day_button = types.InlineKeyboardButton(text=_('День'), callback_data='time_1')
-    month_button = types.InlineKeyboardButton(text=_('Месяц'), callback_data='time_30')
-    year_button = types.InlineKeyboardButton(text=_('Год'), callback_data='time_365')
-
-    return types.InlineKeyboardMarkup(inline_keyboard=[[day_button, month_button, year_button]])
+    # Calendar periods in the local time zone (the old "last 1/30/365 days" buttons still work).
+    return types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=_('Сегодня'), callback_data='time_today'),
+         types.InlineKeyboardButton(text=_('Неделя'), callback_data='time_week')],
+        [types.InlineKeyboardButton(text=_('Месяц'), callback_data='time_month'),
+         types.InlineKeyboardButton(text=_('Год'), callback_data='time_year')],
+        [types.InlineKeyboardButton(text=_('📅 Свой период'), callback_data='time_custom')],
+    ])
 
 
 RU_BUTTON = types.InlineKeyboardButton(text='🇷🇺 Русский', callback_data='ru')
