@@ -106,8 +106,10 @@ async def settings_button():
     currency_button = types.InlineKeyboardButton(text=_('💱 Валюта'), callback_data='currency')
     rates_button = types.InlineKeyboardButton(text=_('💹 Курсы'), callback_data='rates')
     help_button = types.InlineKeyboardButton(text=_('❓ Помощь'), callback_data='help')
+    feedback_button = types.InlineKeyboardButton(text=_('✉️ Написать разработчику'), callback_data='feedback')
 
-    return types.InlineKeyboardMarkup(inline_keyboard=[[button_language, currency_button], [rates_button], [help_button]])
+    return types.InlineKeyboardMarkup(inline_keyboard=[[button_language, currency_button], [rates_button, help_button],
+                                                       [feedback_button]])
 
 
 async def time_interval_buttons():

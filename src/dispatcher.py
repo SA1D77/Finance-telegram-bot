@@ -43,6 +43,10 @@ def create_dispatcher(storage: BaseStorage, owner_id: int, public: bool = ACCESS
         report_handlers.router,
         settings_handlers.router,
     )
+    from feedback.errors import on_error
+    from feedback.handlers import router as feedback_router
+    dp.include_router(feedback_router)
+    dp.errors.register(on_error)  # unexpected errors: apology to the user, notice to the owner
     if history:
         from history.handlers import router as history_router
         dp.include_router(history_router)

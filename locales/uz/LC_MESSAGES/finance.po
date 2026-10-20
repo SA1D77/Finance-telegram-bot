@@ -808,3 +808,35 @@ msgstr ""
 "\n"
 "Kategoriya bo'lmasa yoki boshqasiga o'xshasa, bot so'raydi."
 
+
+#: src/feedback
+msgid "✉️ Напишите, что не работает или что добавить. Можно приложить скриншот."
+msgstr "✉️ Nima ishlamayotganini yoki nima qo'shish kerakligini yozing. Skrinshot ham yuborish mumkin."
+
+#: src/feedback
+msgid "Пришлите текст или скриншот."
+msgstr "Matn yoki skrinshot yuboring."
+
+#: src/feedback
+msgid "Слишком длинно: до {count} символов."
+msgstr "Juda uzun: {count} belgigacha."
+
+#: src/feedback
+msgid "Подождите минуту перед следующим сообщением."
+msgstr "Keyingi xabardan oldin bir daqiqa kuting."
+
+#: src/feedback
+msgid "Спасибо! Сообщение отправлено разработчику."
+msgstr "Rahmat! Xabar dasturchiga yuborildi."
+
+#: src/feedback
+msgid "Ответ разработчика:"
+msgstr "Dasturchining javobi:"
+
+#: src/feedback
+msgid "✉️ Написать разработчику"
+msgstr "✉️ Dasturchiga yozish"
+
+#: src/feedback
+msgid "⚠️ Что-то пошло не так. Разработчик уже получил отчёт, попробуйте ещё раз чуть позже."
+msgstr "⚠️ Nimadir noto'g'ri ketdi. Dasturchi xabardor qilindi, birozdan keyin qayta urinib ko'ring."

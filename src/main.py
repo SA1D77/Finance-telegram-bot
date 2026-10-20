@@ -18,15 +18,19 @@ FSM_REDIS_DB = 4
 
 COMMANDS = {
     'ru': ['История операций', 'Отменить последнюю операцию', 'Бюджет и лимиты на месяц', 'Аналитика за месяц',
-           'Регулярные операции', 'Цели накопления', 'Отчёт за период', 'Экспорт в CSV / XLSX'],
+           'Регулярные операции', 'Цели накопления', 'Отчёт за период', 'Экспорт в CSV / XLSX',
+           'Написать разработчику: ошибка или идея'],
     'uz': ['Amallar tarixi', "Oxirgi amalni bekor qilish", 'Oylik byudjet va limitlar', 'Oylik tahlil',
-           'Muntazam amallar', "Jamg'arma maqsadlari", 'Davr bo\'yicha hisobot', 'CSV / XLSX eksport'],
+           'Muntazam amallar', "Jamg'arma maqsadlari", 'Davr bo\'yicha hisobot', 'CSV / XLSX eksport',
+           "Dasturchiga yozish: xato yoki g'oya"],
     'en': ['Operation history', 'Undo the last operation', 'Monthly budget and limits', 'Monthly analytics',
-           'Recurring operations', 'Savings goals', 'Report for a period', 'Export to CSV / XLSX'],
+           'Recurring operations', 'Savings goals', 'Report for a period', 'Export to CSV / XLSX',
+           'Write to the developer: a bug or an idea'],
     'be': ['Гісторыя аперацый', 'Адмяніць апошнюю аперацыю', 'Бюджэт і ліміты на месяц', 'Аналітыка за месяц',
-           'Рэгулярныя аперацыі', 'Мэты назапашвання', 'Справаздача за перыяд', 'Экспарт у CSV / XLSX'],
+           'Рэгулярныя аперацыі', 'Мэты назапашвання', 'Справаздача за перыяд', 'Экспарт у CSV / XLSX',
+           'Напісаць распрацоўшчыку: памылка ці ідэя'],
 }
-COMMAND_NAMES = ['history', 'undo', 'budget', 'stats', 'recurring', 'goals', 'report', 'export']
+COMMAND_NAMES = ['history', 'undo', 'budget', 'stats', 'recurring', 'goals', 'report', 'export', 'feedback']
 
 
 async def set_commands(bot: Bot) -> None:

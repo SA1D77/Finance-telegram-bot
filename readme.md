@@ -42,6 +42,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 🌍 **Public bot, languages and currencies:** with `ACCESS_MODE=public` anyone can use the bot; every query is scoped to the user, so people never see each other's data, and a flood guard drops spam. On the first start a person picks a language (Русский, O'zbekcha, English, Беларуская) and a main currency (so'm, rubles, Belarusian rubles, tenge, dollars, euros; the language's currency is offered first), and gets a ready set of income and expense categories in that language. Amounts read as `1 500 000 сум` / `$1 250.50`, can be typed as `500к`, `200 тыс`, `1.5 млн`, `300 ming`; the balance also shows ≈ $ and €, Settings shows today's rates and changes the currency. Income offers only income categories, expenses only expense ones, with "➕ New category" right in the picker. `/backup` and e-mail reports stay owner-only.
 
+✉️ **Feedback and error reports:** `/feedback` (or Settings → «✉️ Написать разработчику») sends text or a screenshot to the owner with a «↩️ Ответить» button; the owner's answer is delivered back. Unhandled errors give the user a short apology and the owner a notice with the error type and code location only (no message text or amounts), at most once per 10 minutes per error.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.
