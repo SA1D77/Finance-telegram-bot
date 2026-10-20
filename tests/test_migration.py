@@ -179,3 +179,15 @@ def test_comment_column_round_trip(database):
     assert query(dsn, 'SELECT count(*) FROM accounting') == [(4,)]
     columns = [row[0] for row in query(dsn, "SELECT column_name FROM information_schema.columns WHERE table_name = 'accounting'")]
     assert 'comment' not in columns
+
+
+def test_whole_chain_is_reversible(database):
+    dsn, env = database
+
+    for _ in range(2):
+        alembic(env, 'upgrade', 'head')
+        alembic(env, 'downgrade', 'base')
+    alembic(env, 'upgrade', 'head')
+
+    assert query(dsn, 'SELECT version_num FROM alembic_version') == [(HEAD,)]
+    assert 'No new upgrade operations detected' in alembic(env, 'check').stdout + alembic(env, 'check').stderr

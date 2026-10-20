@@ -52,3 +52,5 @@ def downgrade() -> None:
     op.drop_table('categories')
     op.drop_table('user')
     # ### end Alembic commands ###
+    # create_table made the enum type implicitly; without this a later upgrade fails on CREATE TYPE.
+    op.execute('DROP TYPE IF EXISTS operationtype')
