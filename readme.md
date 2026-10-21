@@ -121,6 +121,9 @@ celery -A celery_app:celery worker --loglevel=INFO
 
 #### In docker
 
+Linux / Raspberry Pi 4 (64-bit): `./start.sh` (creates `src/.env` with random passwords on the first run), `./stop.sh`, `./restore.sh FILE`. Every dependency has an ARM64 build.
+
+
 At the root of the project:
 
 ```docker
