@@ -546,3 +546,28 @@ async def test_user_settings_round_trip(db):
     await user.set_currency(OWNER, 'UZS')
     assert await user.get_settings(OWNER) == ('uz', 'UZS')
     assert await user.get_settings(OTHER) == (None, None)
+
+
+async def test_statement_duplicates_and_merchant_memory(db):
+    from datetime import datetime
+    from statements import queries
+    for uid in (OWNER, OTHER):
+        await user.ensure_user(uid, None)
+    await accounting._add_new_category('транспорт', OWNER, kind='expense')
+    await accounting._add_new_category('старое', OWNER, kind='expense')
+    await accounting._add_new_category('чужое', OTHER, kind='expense')
+    cats = {c.name: c.id for c in await accounting._show_all_categories(OWNER)}
+    other = (await accounting._show_all_categories(OTHER))[0].id
+    when = datetime(2026, 10, 23, 14, 38)
+    E = accounting.OperationType.expenditure
+    await accounting._add_operation(OWNER, cats['старое'], Decimal('2500'), E, comment='OOO ATTO TOLOV', created_at=datetime(2026, 10, 1))
+    await accounting._add_operation(OWNER, cats['транспорт'], Decimal('2500'), E, comment='OOO ATTO TOLOV', created_at=when)
+    await accounting._add_operation(OTHER, other, Decimal('1'), E, comment='KORZINKA', created_at=when)
+
+    assert await queries.already_imported(OWNER, Decimal('2500.00'), when, 'OOO ATTO TOLOV') is True
+    assert await queries.already_imported(OWNER, Decimal('2500.00'), datetime(2026, 10, 23, 14, 39), 'OOO ATTO TOLOV') is False
+    assert await queries.already_imported(OTHER, Decimal('2500.00'), when, 'OOO ATTO TOLOV') is False
+    assert await queries.category_for_merchant(OWNER, 'ooo atto tolov', 'expense') == cats['транспорт']  # the latest
+    assert await queries.category_for_merchant(OWNER, 'OOO ATTO TOLOV', 'income') is None
+    assert await queries.category_for_merchant(OWNER, 'KORZINKA', 'expense') is None   # someone else's history
+    assert await queries.category_for_merchant(OWNER, None, 'expense') is None

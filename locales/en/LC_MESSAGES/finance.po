@@ -1262,3 +1262,39 @@ msgstr "✉️ Write to the developer"
 #: src/feedback
 msgid "⚠️ Что-то пошло не так. Разработчик уже получил отчёт, попробуйте ещё раз чуть позже."
 msgstr "⚠️ Something went wrong. The developer has been notified, please try again a bit later."
+
+#: src/statements
+msgid "🧾 Платёж {number} из {total}"
+msgstr "🧾 Payment {number} of {total}"
+
+#: src/statements
+msgid "✅ {name} (как в прошлый раз)"
+msgstr "✅ {name} (like last time)"
+
+#: src/statements
+msgid "📦 Все остальные сюда"
+msgstr "📦 All the rest here"
+
+#: src/statements
+msgid "⏹ Закончить"
+msgstr "⏹ Finish"
+
+#: src/statements
+msgid "✅ Готово. Записано: {saved}, пропущено: {skipped}."
+msgstr "✅ Done. Saved: {saved}, skipped: {skipped}."
+
+#: src/statements
+msgid "Уже были записаны раньше: {count}."
+msgstr "Already recorded before: {count}."
+
+#: src/statements
+msgid "Неуспешные платежи не учитывались: {count}."
+msgstr "Unsuccessful payments ignored: {count}."
+
+#: src/statements
+msgid "Не удалось получить курс для: {count}."
+msgstr "No exchange rate for: {count}."
+
+#: src/statements
+msgid "Нашёл платежей: {count}. Выберите категорию для каждого."
+msgstr "Found {count} payment(s). Choose a category for each."

@@ -9,7 +9,7 @@ from telegram.validation import checked_amount, multiplier, normalize_expression
 from .calc import CalcError, evaluate, is_expression
 
 # Optional sign, then an expression made of digits, operators and spaces, then the words.
-_QUICK_RE = re.compile(r'^\s*([+-]?)\s*([\d(.,][\d\s.,+\-*/()×÷]*)(.*)$', re.DOTALL)
+_QUICK_RE = re.compile(r"^\s*([+-]?)\s*([\d(.,][\d\s.,'’`+\-*/()×÷]*)(.*)$", re.DOTALL)
 
 
 class AmountError(ValueError):

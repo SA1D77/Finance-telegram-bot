@@ -840,3 +840,39 @@ msgstr "✉️ Dasturchiga yozish"
 #: src/feedback
 msgid "⚠️ Что-то пошло не так. Разработчик уже получил отчёт, попробуйте ещё раз чуть позже."
 msgstr "⚠️ Nimadir noto'g'ri ketdi. Dasturchi xabardor qilindi, birozdan keyin qayta urinib ko'ring."
+
+#: src/statements
+msgid "🧾 Платёж {number} из {total}"
+msgstr "🧾 To'lov {number} / {total}"
+
+#: src/statements
+msgid "✅ {name} (как в прошлый раз)"
+msgstr "✅ {name} (o'tgan safargidek)"
+
+#: src/statements
+msgid "📦 Все остальные сюда"
+msgstr "📦 Qolganlarining hammasi shu yerga"
+
+#: src/statements
+msgid "⏹ Закончить"
+msgstr "⏹ Tugatish"
+
+#: src/statements
+msgid "✅ Готово. Записано: {saved}, пропущено: {skipped}."
+msgstr "✅ Tayyor. Yozildi: {saved}, o'tkazib yuborildi: {skipped}."
+
+#: src/statements
+msgid "Уже были записаны раньше: {count}."
+msgstr "Avval yozilgan edi: {count}."
+
+#: src/statements
+msgid "Неуспешные платежи не учитывались: {count}."
+msgstr "Muvaffaqiyatsiz to'lovlar hisobga olinmadi: {count}."
+
+#: src/statements
+msgid "Не удалось получить курс для: {count}."
+msgstr "Kursni olib bo'lmadi: {count}."
+
+#: src/statements
+msgid "Нашёл платежей: {count}. Выберите категорию для каждого."
+msgstr "To'lovlar topildi: {count}. Har biri uchun kategoriyani tanlang."

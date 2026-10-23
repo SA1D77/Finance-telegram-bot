@@ -46,6 +46,8 @@ def checked_amount(value: Decimal) -> Optional[Decimal]:
 
 
 def normalize_expression(text: str) -> str:
+    # "200'000" / "200’000": apostrophes as thousands separators (common in bank messages).
+    text = re.sub(r"(?<=\d)['’`](?=\d)", '', text)
     text = ' '.join(text.split())
     if _GROUPED_NUMBER_RE.match(text):
         return text.replace(' ', '')

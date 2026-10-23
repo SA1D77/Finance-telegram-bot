@@ -44,6 +44,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 ✉️ **Feedback and error reports:** `/feedback` (or Settings → «✉️ Написать разработчику») sends text or a screenshot to the owner with a «↩️ Ответить» button; the owner's answer is delivered back. Unhandled errors give the user a short apology and the owner a notice with the error type and code location only (no message text or amounts), at most once per 10 minutes per error.
 
+🏦 **Bank statements:** forward or paste payment notifications from bank bots (`➖ 37'000 UZS`, `🔹 merchant`, `🕘 21:48 23.10.2026`, `✅ Успешно`): the bot finds every payment, skips unsuccessful ones and those already recorded, and asks for a category one by one, offering the category last used for that merchant first; "📦 All the rest here" files the remaining ones at once. Operations keep the real payment time and the merchant as the comment; foreign currencies are converted by the rate of that day. `FEATURE_STATEMENTS=0` turns it off.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.
