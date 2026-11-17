@@ -39,21 +39,38 @@ def is_due(state, now: datetime, interval_minutes: int) -> bool:
     return now - state.last_started_at >= timedelta(minutes=wait)
 
 
-Notifier = Callable[[str, Optional[dict]], Awaitable[None]]
+# Returns whether Telegram accepted the message.
+Notifier = Callable[[str, Optional[dict]], Awaitable[bool]]
 
 
 async def notify_findings(user_id: int, notify: Notifier) -> int:
-    """Sends every open discrepancy not yet announced, once (notified_at), with a button to open it."""
+    """Sends every open discrepancy not yet announced, once (notified_at), with a button to open it.
+
+    Only what Telegram accepted is marked as announced: a failed send is tried again after the next run.
+    """
     sent = []
     for d in await queries.unnotified_discrepancies(user_id):
         period = await queries.get_period(user_id, d.period_id)
         transactions = await queries.period_transactions(user_id, d.period_id) if period is not None else []
         tx = await queries.get_transaction(user_id, d.transaction_id) if d.transaction_id else None
         markup = {'inline_keyboard': [[{'text': 'Открыть вопрос', 'callback_data': f'cs:dv:{d.id}'}]]}
-        await notify(discrepancy_text(d, period, transactions, tx), markup)
-        sent.append(d.id)
-    await queries.mark_notified(user_id, sent)
+        if await notify(discrepancy_text(d, period, transactions, tx), markup):
+            sent.append(d.id)
+    if sent:
+        await queries.mark_notified(user_id, sent)
     return len(sent)
+
+
+def partial_failure(result: RunResult) -> Optional[str]:
+    """A run that went through but left periods unread is not a success: it is retried soon."""
+    if not result.periods_failed and not result.periods_incomplete:
+        return None
+    parts = []
+    if result.periods_failed:
+        parts.append(f'с ошибкой: {result.periods_failed}')
+    if result.periods_incomplete:
+        parts.append(f'прочитано не полностью: {result.periods_incomplete}')
+    return 'часть периодов не загружена (' + ', '.join(parts) + '), повторю позже. Подробности: /click → ❗ Вопросы'
 
 
 async def run_once(user_id: int, adapter_factory: Callable[[], Awaitable[ClickAdapter]], notify: Notifier,
@@ -68,6 +85,7 @@ async def run_once(user_id: int, adapter_factory: Callable[[], Awaitable[ClickAd
         result = await run_sync(adapter, queries.DbStore(user_id), today, settings.OVERLAP_DAYS)
         await queries.auto_link_exact(user_id, user_currency, settings.to_utc)
         await queries.check_ledger(user_id, user_currency)
+        error = partial_failure(result)
     except SyncError as failure:
         error = str(failure)
     except (ConnectionError, OSError, asyncio.TimeoutError) as failure:
@@ -94,11 +112,13 @@ def _bot_notifier() -> Notifier:
 
     bot = Bot(token=TELEGRAM, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
-    async def notify(text: str, markup: Optional[dict]) -> None:
+    async def notify(text: str, markup: Optional[dict]) -> bool:
         try:
             await bot.send_message(OWNER_ID, text, reply_markup=InlineKeyboardMarkup.model_validate(markup) if markup else None)
         except Exception as failure:
             logger.warning('Notification not sent: %s', type(failure).__name__)
+            return False
+        return True
 
     return notify
 

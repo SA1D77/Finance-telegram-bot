@@ -65,6 +65,9 @@ class StoredTx:
     source_id: Optional[str] = None
     ambiguous: bool = False
     direction: str = 'unknown'
+    account: Optional[str] = None
+    occurred_at: Optional[datetime] = None
+    currency: Optional[str] = None
 
 
 @dataclass
@@ -134,21 +137,62 @@ def dedup_keys(transactions: Sequence[ParsedTx]) -> List[Tuple[str, bool]]:
     return keys
 
 
+def _minute(value: Optional[datetime]) -> Optional[datetime]:
+    return value.replace(second=0, microsecond=0) if value else None
+
+
+def _same_payment(tx: ParsedTx, stored: StoredTx) -> bool:
+    """The stored row is this payment re-keyed: same card, minute, merchant and currency, and only the amount
+    or the source's id differs (an id appearing, or a corrected amount)."""
+    if stored.occurred_at is None or tx.occurred_at is None:
+        return False
+
+    def words(text: Optional[str]) -> str:
+        return ' '.join((text or '').casefold().split())
+
+    same = ((stored.account or '') == (tx.account or ''), _minute(stored.occurred_at) == _minute(tx.occurred_at),
+            (stored.currency or '').upper() == (tx.currency or '').upper(), words(stored.description) == words(tx.description))
+    if not all(same):
+        return False
+    if tx.source_id and stored.source_id and tx.source_id != stored.source_id:
+        return False    # two payments, each with its own id
+    return tx.amount != stored.amount or bool(tx.source_id) != bool(stored.source_id)
+
+
 def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
-                keys: Sequence[Tuple[str, bool]]) -> IngestPlan:
-    """What reading this report changes: new rows, corrected rows (with what changed) and untouched ones."""
+                keys: Sequence[Tuple[str, bool]], lookalikes: Sequence[StoredTx] = ()) -> IngestPlan:
+    """What reading this report changes: new rows, corrected rows (with what changed) and untouched ones.
+
+    `lookalikes` are stored rows near the unmatched transactions (same card and minute). The key holds the
+    amount and the source's id, so a corrected amount or an id that appears later gives a new key; such a
+    row is matched to the stored one and re-keyed instead of being inserted a second time. Only a stored row
+    that no transaction of this report matched by key can be taken, and only when exactly one fits: two
+    different payments that are both still in the report are never merged.
+    """
     plan = IngestPlan()
     planned = set()
+    matched_ids = {existing[key].id for key, _ in keys if key in existing}
+    taken: set = set()
     for tx, (key, ambiguous) in zip(transactions, keys):
         if key in planned:      # the same source id printed twice in one report
             plan.unchanged += 1
             continue
         planned.add(key)
         stored = existing.get(key)
+        rekey: Dict[str, Tuple[Any, Any]] = {}
         if stored is None:
-            plan.inserts.append((key, ambiguous, tx))
-            continue
-        changes: Dict[str, Tuple[Any, Any]] = {}
+            fits = [row for row in lookalikes
+                    if row.id not in matched_ids and row.id not in taken and _same_payment(tx, row)]
+            if len(fits) != 1:
+                plan.inserts.append((key, ambiguous, tx))
+                continue
+            stored = fits[0]
+            taken.add(stored.id)
+            if tx.source_id is None and stored.source_id and tx.amount == stored.amount:
+                plan.unchanged += 1     # the id is just not printed this time: keep the row and its key
+                continue
+            rekey['dedup_key'] = (stored.dedup_key, key)
+        changes: Dict[str, Tuple[Any, Any]] = dict(rekey)
         if tx.status != stored.status and tx.status != 'unknown':
             changes['status'] = (stored.status, tx.status)
         if tx.amount != stored.amount:

@@ -16,7 +16,7 @@ from accounting.models import Accounting, OperationType
 from middleware import service
 from timeutils import utc_now
 from user.models import User
-from .core import IngestPlan, PeriodReport, StoredTx, fingerprint
+from .core import IngestPlan, ParsedTx, PeriodReport, StoredTx, fingerprint
 from .engine import Finding
 from .models import Discrepancy, SourceTransaction, SourceTransactionAudit, SyncPeriod, SyncState
 
@@ -105,6 +105,13 @@ async def mark_finished(user_id: int, error: Optional[str]) -> None:
 
 # --- The engine's store -------------------------------------------------------------------------
 
+def _stored(row) -> StoredTx:
+    return StoredTx(id=row.id, dedup_key=row.dedup_key, status=row.status, amount=row.amount, delivery=row.delivery,
+                    fee=row.fee, fee_included=row.fee_included, description=row.description, source_id=row.source_id,
+                    ambiguous=row.ambiguous, direction=row.direction, account=row.account, occurred_at=row.occurred_at,
+                    currency=row.currency)
+
+
 class DbStore:
     """clicksync.engine.Store on PostgreSQL."""
 
@@ -150,11 +157,17 @@ class DbStore:
             SourceTransaction.user_id == self.user_id, SourceTransaction.source == self.source,
             SourceTransaction.dedup_key.in_(list(keys)))
         rows = await service._execute_select_command(statement)
-        return {row.dedup_key: StoredTx(id=row.id, dedup_key=row.dedup_key, status=row.status, amount=row.amount,
-                                        delivery=row.delivery, fee=row.fee, fee_included=row.fee_included,
-                                        description=row.description, source_id=row.source_id, ambiguous=row.ambiguous,
-                                        direction=row.direction)
-                for row in rows}
+        return {row.dedup_key: _stored(row) for row in rows}
+
+    async def lookalikes(self, transactions: Sequence[ParsedTx]) -> List[StoredTx]:
+        minutes = {tx.occurred_at.replace(second=0, microsecond=0) for tx in transactions if tx.occurred_at}
+        if not minutes:
+            return []
+        near = or_(*[and_(SourceTransaction.occurred_at >= m, SourceTransaction.occurred_at < m + timedelta(minutes=1))
+                     for m in sorted(minutes)])
+        statement = select(SourceTransaction).where(
+            SourceTransaction.user_id == self.user_id, SourceTransaction.source == self.source, near)
+        return [_stored(row) for row in await service._execute_select_command(statement)]
 
     async def apply(self, period_id: int, report: PeriodReport, plan: IngestPlan, status: str,
                     note: Optional[str], findings: List[Finding]) -> None:
@@ -291,9 +304,13 @@ async def link(user_id: int, transaction_id: int, operation_id: uuid.UUID, reaso
 
 
 async def ignore(user_id: int, transaction_id: int, own_transfer: bool = False) -> bool:
+    """Skips a waiting transaction. An own transfer needs a known direction: totals count it by direction."""
+    conditions = [SourceTransaction.id == transaction_id, _pending(user_id)]
+    if own_transfer:
+        conditions.append(SourceTransaction.direction.in_(('in', 'out')))
     async with _session() as session, session.begin():
         claimed = (await session.execute(
-            update(SourceTransaction).where(SourceTransaction.id == transaction_id, _pending(user_id))
+            update(SourceTransaction).where(*conditions)
             .values(delivery='ignored', own_transfer=own_transfer, updated_at=utc_now())
             .returning(SourceTransaction.id))).scalar()
         if claimed is None:

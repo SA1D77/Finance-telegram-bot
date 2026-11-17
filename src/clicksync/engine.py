@@ -10,7 +10,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, List, Optional, Protocol, Sequence, Set, Tuple
 
-from .core import IngestPlan, PeriodReport, StoredTx, dedup_keys, fingerprint, plan_ingest, sync_target
+from .core import IngestPlan, ParsedTx, PeriodReport, StoredTx, dedup_keys, fingerprint, plan_ingest, sync_target
 from .reconcile import balance_check
 
 logger = logging.getLogger(__name__)
@@ -81,6 +81,9 @@ class Store(Protocol):
     async def existing(self, keys: Sequence[str]) -> Dict[str, StoredTx]:
         ...
 
+    async def lookalikes(self, transactions: Sequence[ParsedTx]) -> List[StoredTx]:
+        """Stored rows of the same cards in the same minutes as these transactions."""
+
     async def apply(self, period_id: int, report: PeriodReport, plan: IngestPlan, status: str,
                     note: Optional[str], findings: List[Finding]) -> None:
         ...
@@ -138,7 +141,10 @@ async def _process(store: Store, report: PeriodReport, start_date: date, result:
         result.skipped_before_start += len(report.transactions) - len(wanted)
         scoped = PeriodReport(**{**report.__dict__, 'transactions': wanted})
         keys = dedup_keys(wanted)
-        plan = plan_ingest(await store.existing([key for key, _ in keys]), wanted, keys)
+        existing = await store.existing([key for key, _ in keys])
+        unmatched = [tx for tx, (key, _) in zip(wanted, keys) if key not in existing]
+        lookalikes = await store.lookalikes(unmatched) if unmatched else []
+        plan = plan_ingest(existing, wanted, keys, lookalikes)
         status = 'completed' if report.complete else 'incomplete'
         await store.apply(period_id, scoped, plan, status, report.note, _findings(scoped, plan))
     except SyncError:

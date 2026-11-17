@@ -161,6 +161,7 @@ async def test_payment_without_a_sign_asks_the_direction_first(harness, fq, monk
     card = harness.session.requests[-2]
     assert 'нет знака' in card.text
     assert ('➖ Расход', 'cs:dir:5:out') in buttons_of(card) and not any(d.startswith('cs:c:') for _, d in buttons_of(card))
+    assert 'cs:o:5' not in [d for _, d in buttons_of(card)]     # an own transfer needs a direction first
 
     await harness.feed(make_callback('cs:dir:5:out'))
 

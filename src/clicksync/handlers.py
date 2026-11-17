@@ -194,7 +194,11 @@ async def _card(tx):
     else:
         text = (tx_card(tx, 1, total) + '\n\nВ файле Click у этого платежа нет знака. Это расход или доход?')
         rows.append([_button('➖ Расход', f'cs:dir:{tx.id}:out'), _button('➕ Доход', f'cs:dir:{tx.id}:in')])
-    rows.append([_button('🔗 Уже записано', f'cs:l:{tx.id}'), _button('🔁 Перевод между своими', f'cs:o:{tx.id}')])
+    # A transfer between own accounts is counted by its direction, so it is offered once the direction is known.
+    row = [_button('🔗 Уже записано', f'cs:l:{tx.id}')]
+    if tx.direction in ('in', 'out'):
+        row.append(_button('🔁 Перевод между своими', f'cs:o:{tx.id}'))
+    rows.append(row)
     rows.append([_button('⏭ Не записывать', f'cs:i:{tx.id}'), _button('⏹ Позже', 'cs:home')])
     return text, _markup(*rows)
 
@@ -450,12 +454,17 @@ def reconciliation_text(transactions, periods_with_balance: list, deliveries: di
                 line += f', комиссии {amount(totals.fees, currency)}'
             if totals.transfers_in or totals.transfers_out:
                 line += f', переводы между своими {amount(totals.transfers_in + totals.transfers_out, currency)}'
+            if totals.unsigned:
+                line += f', без знака (не разобраны) {amount(totals.unsigned, currency)}'
             lines.append(line)
         lines.append('')
         lines.append('<b>Итого без переводов между своими счетами</b>')
         for currency, totals in consolidated(per_account).items():
-            lines.append(f'{currency or "валюта не указана"}: доход {amount(totals.income, currency)}, '
-                         f'расход {amount(totals.expense + totals.fees, currency)}')
+            line = (f'{currency or "валюта не указана"}: доход {amount(totals.income, currency)}, '
+                    f'расход {amount(totals.expense + totals.fees, currency)}')
+            if totals.unsigned:
+                line += f'; ещё {amount(totals.unsigned, currency)} без знака не вошли ни в доход, ни в расход'
+            lines.append(line)
     return '\n'.join(lines)
 
 

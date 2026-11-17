@@ -153,6 +153,41 @@ def test_unknown_status_never_overwrites_a_known_one():
     assert plan.updates == [] and plan.unchanged == 1
 
 
+async def test_corrected_amount_updates_the_row_instead_of_adding_one():
+    store = FakeStore(start=date(2026, 11, 10))
+    first = tx('100', when=datetime(2026, 11, 12, 9, 0, 30))
+    await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), [first])]), store, TODAY, 7)
+    next(iter(store.rows.values()))['delivery'] = 'delivered'
+
+    await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), [replace(first, amount=D('120'))])]), store, TODAY, 7)
+    await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), [replace(first, amount=D('120'))])]), store, TODAY, 7)
+
+    assert len(store.rows) == 1 and next(iter(store.rows.values()))['tx'].amount == D('120')
+    assert [(field, change[0]) for _, field, change in store.audit] == [('dedup_key', store.audit[0][2][0]), ('amount', D('100'))]
+    assert [f.kind for f in store.findings.values()] == ['changed_after_delivery']    # it was already recorded
+
+
+async def test_source_id_appearing_later_keeps_one_row_and_missing_again_changes_nothing():
+    store = FakeStore(start=date(2026, 11, 10))
+    plain = tx('6490', when=datetime(2026, 11, 12, 0, 5))
+    await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), [plain])]), store, TODAY, 7)
+    await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), [replace(plain, source_id='4512345678')])]), store, TODAY, 7)
+    again = await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), [plain])]), store, TODAY, 7)
+
+    assert len(store.rows) == 1 and next(iter(store.rows))[:3] == 'id:'
+    assert next(iter(store.rows.values()))['tx'].source_id == '4512345678'
+    assert again.inserted == 0 and again.unchanged == 1
+
+
+async def test_two_different_payments_in_one_minute_are_never_merged():
+    store = FakeStore(start=date(2026, 11, 10))
+    taxi = tx('60000', when=datetime(2026, 11, 12, 9, 0))
+    await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), [taxi])]), store, TODAY, 7)
+    both = [taxi, replace(taxi, amount=D('45000'))]
+    result = await engine.run_sync(FakeAdapter([week(date(2026, 11, 10), both)]), store, TODAY, 7)
+    assert result.inserted == 1 and len(store.rows) == 2
+
+
 def test_same_source_id_twice_in_one_report_is_inserted_once():
     rows = [tx(source_id='T-1'), tx(source_id='T-1')]
     plan = core.plan_ingest({}, rows, core.dedup_keys(rows))
@@ -282,10 +317,20 @@ class FakeStore:
             raise_in_apply[0] = True
         return period['id']
 
+    @staticmethod
+    def _stored(k, r):
+        t = r['tx']
+        return StoredTx(id=r['id'], dedup_key=k, status=t.status, amount=t.amount, delivery=r['delivery'],
+                        description=t.description, ambiguous=r['ambiguous'], direction=t.direction, source_id=t.source_id,
+                        account=t.account, occurred_at=t.occurred_at, currency=t.currency)
+
     async def existing(self, keys):
-        return {k: StoredTx(id=r['id'], dedup_key=k, status=r['tx'].status, amount=r['tx'].amount, delivery=r['delivery'],
-                            description=r['tx'].description, ambiguous=r['ambiguous'], direction=r['tx'].direction)
-                for k, r in self.rows.items() if k in keys}
+        return {k: self._stored(k, r) for k, r in self.rows.items() if k in keys}
+
+    async def lookalikes(self, transactions):
+        minutes = {t.occurred_at.replace(second=0) for t in transactions if t.occurred_at}
+        return [self._stored(k, r) for k, r in self.rows.items()
+                if r['tx'].occurred_at and r['tx'].occurred_at.replace(second=0) in minutes]
 
     async def apply(self, period_id, report, plan, status, note, findings):
         if raise_in_apply[0]:
@@ -294,8 +339,10 @@ class FakeStore:
         for key, ambiguous, row in plan.inserts:
             self.rows[key] = {'id': len(self.rows) + 1, 'tx': row, 'ambiguous': ambiguous, 'delivery': 'new'}
         for update in plan.updates:
-            record = next(r for r in self.rows.values() if r['id'] == update.stored.id)
-            values = {k: v[1] for k, v in update.changes.items() if k != 'ambiguous'}
+            old_key, record = next((k, r) for k, r in self.rows.items() if r['id'] == update.stored.id)
+            if 'dedup_key' in update.changes:
+                self.rows[update.changes['dedup_key'][1]] = self.rows.pop(old_key)
+            values = {k: v[1] for k, v in update.changes.items() if k not in ('ambiguous', 'dedup_key')}
             record['tx'] = replace(record['tx'], **values)
             self.audit += [(update.stored.id, k, v) for k, v in update.changes.items()]
         for finding in findings:
@@ -713,6 +760,7 @@ class Recorder:
 
     async def __call__(self, text, markup):
         self.calls.append(text)
+        return True
 
 
 @pytest.fixture
@@ -815,6 +863,58 @@ async def test_findings_are_sent_once(monkeypatch):
     for part in ('Баланс не сходится', '561468******6104', 'Ожидаемый баланс: 900 UZS', 'Баланс в отчёте: 850 UZS',
                  'Разница: <b>-50 UZS</b>', 'Что нужно от вас'):
         assert part in text
+
+
+async def test_a_finding_that_was_not_delivered_is_sent_again(monkeypatch):
+    finding = SimpleNamespace(id=7, kind='period_failed', account=None, currency=None, period_id=None, transaction_id=None,
+                              details='Период не обработан.', expected=None, reported=None, difference=None)
+    marked = []
+
+    async def unnotified(user_id):
+        return [] if marked else [finding]
+
+    async def mark(user_id, ids):
+        marked.extend(ids)
+
+    async def none(*args):
+        return None
+
+    monkeypatch.setattr(worker.queries, 'unnotified_discrepancies', unnotified)
+    monkeypatch.setattr(worker.queries, 'mark_notified', mark)
+    monkeypatch.setattr(worker.queries, 'get_period', none)
+
+    async def telegram_down(text, markup):
+        return False
+
+    assert await worker.notify_findings(1001, telegram_down) == 0 and marked == []
+    assert await worker.notify_findings(1001, Recorder()) == 1 and marked == [7]
+
+
+async def test_a_run_with_unread_periods_is_not_a_success(worker_db, monkeypatch):
+    async def fake_run(adapter, store, today, overlap):
+        return engine.RunResult(periods_ok=1, periods_failed=1, periods_incomplete=1)
+
+    async def factory():
+        return object()
+
+    monkeypatch.setattr(worker, 'run_sync', fake_run)
+    notify = Recorder()
+    await worker.run_once(1001, factory, notify, TODAY, 'UZS')
+
+    error = worker_db['finished'][0]
+    assert 'с ошибкой: 1' in error and 'прочитано не полностью: 1' in error
+    assert any('не удалась' in call for call in notify.calls)
+    # ...so the next automatic run comes after 15 minutes, not after the full interval
+    assert worker.is_due(state(last_started_at=NOW - timedelta(minutes=16), last_finished_at=NOW - timedelta(minutes=15),
+                               last_error=error), NOW, 180)
+
+
+def test_unsigned_payments_are_shown_apart_in_the_totals():
+    rows = [SimpleNamespace(**tx('100', direction='unknown').__dict__, own_transfer=False),
+            SimpleNamespace(**tx('40').__dict__, own_transfer=False)]
+    totals = reconcile.totals_by_account(rows)[('561468******6104', 'UZS')]
+    assert (totals.expense, totals.unsigned, totals.count) == (D('40'), D('100'), 2)
+    assert reconcile.consolidated({('x', 'UZS'): totals})['UZS'].unsigned == D('100')
 
 
 def test_clickuz_module_keeps_unknowns_isolated():

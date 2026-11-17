@@ -116,6 +116,21 @@ async def test_unsigned_file_row_gets_its_direction_once_without_a_second_row(db
     assert [(a.field, a.new_value, a.reason) for a in audit] == [('direction', 'out', 'user_set')]
 
 
+async def test_rekeyed_payment_stays_one_row_in_postgres(db):
+    await _setup()
+    week = (date(2026, 11, 10), date(2026, 11, 16))
+    first = payment('6490', datetime(2026, 11, 12, 0, 5, 12), description='Istoriya po karte', direction='unknown')
+    with_id = ParsedTx(**{**first.__dict__, 'source_id': '4512345678', 'amount': D('6500')})
+    for report in ([first], [with_id], [with_id]):
+        await engine.run_sync(OneReport(PeriodReport(*week, report)), queries.DbStore(OWNER), TODAY, 7)
+
+    rows = await _rows(SourceTransaction, SourceTransaction.user_id == OWNER)
+    assert [(r.amount, r.source_id, r.dedup_key[:3]) for r in rows] == [(D('6500'), '4512345678', 'id:')]
+    fields = sorted(a.field for a in await _rows(SourceTransactionAudit))
+    assert fields == ['amount', 'dedup_key', 'source_id']
+    assert not await queries.ignore(OWNER, rows[0].id, own_transfer=True)    # no direction yet: no own transfer
+
+
 async def test_failed_payments_are_never_offered(db):
     await _setup()
     report = PeriodReport(date(2026, 11, 10), date(2026, 11, 16), [payment('99000', datetime(2026, 11, 12, 18, 0), status='failed')])

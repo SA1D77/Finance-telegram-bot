@@ -79,6 +79,7 @@ class Totals:
     fees: Decimal = ZERO                # only fees charged on top of the amounts
     transfers_in: Decimal = ZERO        # between the user's own accounts: not income
     transfers_out: Decimal = ZERO       # ... and not an expense
+    unsigned: Decimal = ZERO            # completed, direction not known yet: shown apart, never guessed
     count: int = 0
 
 
@@ -86,10 +87,13 @@ def totals_by_account(transactions: Iterable[Any]) -> Dict[Tuple[Optional[str], 
     """Completed transactions summed per (account, currency); own transfers are kept out of income/expense."""
     result: Dict[Tuple[Optional[str], Optional[str]], Totals] = {}
     for tx in transactions:
-        if tx.status != 'completed' or tx.direction not in ('in', 'out'):
+        if tx.status != 'completed':
             continue
         totals = result.setdefault((tx.account, tx.currency), Totals())
         totals.count += 1
+        if tx.direction not in ('in', 'out'):
+            totals.unsigned += tx.amount
+            continue
         incoming = tx.direction == 'in'
         if getattr(tx, 'own_transfer', False):
             if incoming:
@@ -115,5 +119,6 @@ def consolidated(per_account: Dict[Tuple[Optional[str], Optional[str]], Totals])
         total.fees += totals.fees
         total.transfers_in += totals.transfers_in
         total.transfers_out += totals.transfers_out
+        total.unsigned += totals.unsigned
         total.count += totals.count
     return result
