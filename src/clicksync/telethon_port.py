@@ -6,7 +6,8 @@ import asyncio
 from pathlib import Path
 from typing import List
 
-from telethon import TelegramClient, types
+from telethon import TelegramClient
+from telethon.tl import types
 from telethon.errors import BotResponseTimeoutError
 
 from .clickuz import BotMessage, Button
@@ -19,13 +20,21 @@ def make_client() -> TelegramClient:
     return TelegramClient(str(SESSION_PATH), api_id, api_hash)
 
 
+# Since Telethon 1.43 (layer 2xx) a button is one KeyboardButton(text, type) and its kind lives in `type`;
+# older layers had a class per kind (KeyboardButtonCallback...). Names are looked up so that both work.
+_KINDS = (('InlineButtonTypeCallback', 'callback'), ('ButtonTypeDefault', 'text'), ('InlineButtonTypeUrl', 'url'),
+          ('KeyboardButtonCallback', 'callback'), ('KeyboardButtonUrl', 'url'))
+
+
 def _kind(button) -> str:
-    if isinstance(button, types.KeyboardButtonCallback):
-        return 'callback'
-    if isinstance(button, types.KeyboardButton):
-        return 'text'
-    if isinstance(button, types.KeyboardButtonUrl):
-        return 'url'
+    """'callback', 'text', 'url' or 'other' for a raw TL button (MessageButton.button)."""
+    for candidate in (getattr(button, 'type', None), button):
+        for name, kind in _KINDS:
+            cls = getattr(types, name, None)
+            if cls is not None and candidate is not None and isinstance(candidate, cls):
+                return kind
+    if type(button).__name__ == 'KeyboardButton' and getattr(button, 'type', None) is None:
+        return 'text'   # old layer: a plain reply button
     return 'other'
 
 
@@ -57,7 +66,7 @@ class TelethonPort:
     async def press(self, message_id: int, index: int) -> None:
         message = await self.client.get_messages(self.entity, ids=message_id)
         button = _flat_buttons(message)[index]
-        if not isinstance(button.button, types.KeyboardButtonCallback):
+        if _kind(button.button) != 'callback':
             raise ValueError('not a callback button')
         try:
             await button.click()

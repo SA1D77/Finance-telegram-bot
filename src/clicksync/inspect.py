@@ -66,6 +66,18 @@ async def main() -> int:
     print(f'Чат с @{BOT}. Команды: номер кнопки — нажать; s — отправить {command}; r — обновить; '
           f'f — сохранить файл из последнего сообщения; q — выход.')
     print('Нажимайте только кнопки отчётов. Кнопки оплаты и переводов не трогайте.')
+    try:
+        await _walk(client, port, transcript, command)
+    finally:    # the transcript survives an error or Ctrl+C
+        path = INSPECT_DIR / 'transcript.json'
+        path.write_text(json.dumps(transcript, ensure_ascii=False, indent=2), encoding='utf-8')
+        await client.disconnect()
+        print(f'Запись сохранена: {path}')
+        print('В ней все цифры заменены на 0. Просмотрите файл перед тем, как кому-либо его показывать.')
+    return 0
+
+
+async def _walk(client, port: TelethonPort, transcript: List[Dict[str, Any]], command: str) -> None:
     while True:
         messages = [m for m in await client.get_messages(port.entity, limit=3) if not m.out]
         if not messages:
@@ -120,13 +132,6 @@ async def main() -> int:
             await asyncio.sleep(2)
             continue
         print('Не понял. Введите номер кнопки, s, r, f или q.')
-
-    path = INSPECT_DIR / 'transcript.json'
-    path.write_text(json.dumps(transcript, ensure_ascii=False, indent=2), encoding='utf-8')
-    await client.disconnect()
-    print(f'Запись сохранена: {path}')
-    print('В ней все цифры заменены на 0. Просмотрите файл перед тем, как кому-либо его показывать.')
-    return 0
 
 
 if __name__ == '__main__':
