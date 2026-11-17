@@ -5,3 +5,7 @@ venv/
 **/__pycache__
 src/report/generated/
 backups/
+# Telegram session and Click reports: mounted at runtime, never baked into the image
+secrets/
+*.session
+*.session-journal
