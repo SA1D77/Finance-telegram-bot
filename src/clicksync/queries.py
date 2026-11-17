@@ -152,7 +152,8 @@ class DbStore:
         rows = await service._execute_select_command(statement)
         return {row.dedup_key: StoredTx(id=row.id, dedup_key=row.dedup_key, status=row.status, amount=row.amount,
                                         delivery=row.delivery, fee=row.fee, fee_included=row.fee_included,
-                                        description=row.description, source_id=row.source_id, ambiguous=row.ambiguous)
+                                        description=row.description, source_id=row.source_id, ambiguous=row.ambiguous,
+                                        direction=row.direction)
                 for row in rows}
 
     async def apply(self, period_id: int, report: PeriodReport, plan: IngestPlan, status: str,
@@ -302,6 +303,22 @@ async def ignore(user_id: int, transaction_id: int, own_transfer: bool = False) 
     return True
 
 
+async def set_direction(user_id: int, transaction_id: int, direction: str) -> bool:
+    """The owner says which way a payment without a sign went (the monthly file has none). Only while it waits."""
+    if direction not in ('in', 'out'):
+        return False
+    async with _session() as session, session.begin():
+        claimed = (await session.execute(
+            update(SourceTransaction)
+            .where(SourceTransaction.id == transaction_id, _pending(user_id), SourceTransaction.direction == 'unknown')
+            .values(direction=direction, updated_at=utc_now())
+            .returning(SourceTransaction.id))).scalar()
+        if claimed is None:
+            return False
+        await session.execute(_audit(transaction_id, 'direction', 'unknown', direction, 'user_set'))
+    return True
+
+
 async def requeue(user_id: int, transaction_id: int) -> bool:
     """Back to the queue: only for a transaction that has no operation any more (ignored, or its operation was deleted)."""
     async with _session() as session, session.begin():
@@ -340,13 +357,15 @@ async def auto_link_exact(user_id: int, user_currency: Optional[str], to_utc) ->
                                                 SourceTransaction.description.isnot(None))
     linked = 0
     for tx in await service._execute_select_command(statement):
-        created_at = to_utc(tx.occurred_at)
-        match = select(Accounting.id).where(
-            _unlinked(user_id), _same_amount(tx.amount, tx.currency, user_currency),
-            Accounting.created_at >= created_at, Accounting.created_at < created_at + timedelta(minutes=1),
-            Accounting.comment == tx.description,
-            Accounting.operation_type == (OperationType.income if tx.direction == 'in' else OperationType.expenditure),
-        ).order_by(Accounting.created_at).limit(1)
+        # The file prints seconds, a forwarded message only minutes: compare by the minute.
+        created_at = to_utc(tx.occurred_at.replace(second=0, microsecond=0))
+        conditions = [_unlinked(user_id), _same_amount(tx.amount, tx.currency, user_currency),
+                      Accounting.created_at >= created_at, Accounting.created_at < created_at + timedelta(minutes=1),
+                      Accounting.comment == tx.description]
+        if tx.direction in ('in', 'out'):   # unknown: the recorded operation's own type is taken as it is
+            conditions.append(Accounting.operation_type == (OperationType.income if tx.direction == 'in'
+                                                            else OperationType.expenditure))
+        match = select(Accounting.id).where(*conditions).order_by(Accounting.created_at).limit(1)
         operation_id = await service._execute_scalar(match)
         if operation_id is not None and await link(user_id, tx.id, operation_id, reason='auto_link_exact'):
             linked += 1

@@ -1,7 +1,7 @@
 """Settings of the @clickuz import, read from src/.env (see src/.env.example).
 
-Nothing about the source bot is guessed here: the labels of the period buttons stay empty until they are
-filled in from a real session (python -m clicksync.inspect), and the time zone of the report has no default.
+The button labels default to what a real @clickuz session showed (python -m clicksync.inspect); the time zone
+of the report has no default.
 """
 import os
 from dataclasses import dataclass
@@ -29,6 +29,8 @@ INTERVAL_MINUTES = max(int(_number('CLICK_SYNC_INTERVAL_MIN', 180)), 5)
 OVERLAP_DAYS = max(int(_number('CLICK_OVERLAP_DAYS', 7)), 0)
 STEP_DELAY = max(_number('CLICK_STEP_DELAY', 2.0), 0.5)     # pause between button presses, seconds
 REPLY_TIMEOUT = max(_number('CLICK_REPLY_TIMEOUT', 25.0), 5.0)
+# Click prepares the monthly file for a few minutes ("Пожалуйста, подождите..."): about 3 minutes seen.
+FILE_TIMEOUT = max(_number('CLICK_FILE_TIMEOUT', 600.0), 30.0)
 # Session file and downloaded reports: outside git (see .gitignore), readable only by the owner.
 DATA_DIR = Path(os.environ.get('CLICK_DATA_DIR') or PROJECT_ROOT / 'secrets' / 'clicksync')
 SESSION_PATH = DATA_DIR / 'telegram'    # Telethon adds .session
@@ -40,21 +42,25 @@ class ConfigError(Exception):
 
 @dataclass(frozen=True)
 class Profile:
-    """What to send and which buttons may be pressed. A button is matched by a part of its label."""
-    reports_command: str
-    payments: str
-    older: str
-    download: str = ''
-    next_page: str = ''
+    """What to send and which buttons may be pressed. A button is matched by a part of its label.
+
+    Defaults are the labels of the real @clickuz flow (seen 17.11.2026): /reports -> "💸 Платежи" -> the weekly
+    report with "◀️ 1️⃣ ▶️" pages and "⬇️ Скачать" -> "Выберите месяц" with "2026.11"-style buttons -> .xlsx.
+    """
+    reports_command: str = '/reports'
+    payments: str = 'Платежи'
+    download: str = 'Скачать'
+    next_page: str = '▶'
+    currency: str = ''      # fallback when the weekly report shows no payment of a card
 
 
 def profile() -> Profile:
     return Profile(
         reports_command=(os.environ.get('CLICK_CMD_REPORTS') or '/reports').strip(),
         payments=(os.environ.get('CLICK_BTN_PAYMENTS') or 'Платежи').strip(),
-        older=(os.environ.get('CLICK_BTN_OLDER') or '').strip(),
-        download=(os.environ.get('CLICK_BTN_DOWNLOAD') or '').strip(),
-        next_page=(os.environ.get('CLICK_BTN_NEXT_PAGE') or '').strip(),
+        download=(os.environ.get('CLICK_BTN_DOWNLOAD') or 'Скачать').strip(),
+        next_page=(os.environ.get('CLICK_BTN_NEXT_PAGE') or '▶').strip(),
+        currency=(os.environ.get('CLICK_CURRENCY') or '').strip().upper(),
     )
 
 

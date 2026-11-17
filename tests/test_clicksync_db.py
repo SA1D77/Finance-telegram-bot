@@ -98,6 +98,24 @@ async def test_delivery_is_atomic_and_safe_to_retry(db):
     assert (await queries.get_transaction(OWNER, tx.id)).delivery == 'linked'
 
 
+async def test_unsigned_file_row_gets_its_direction_once_without_a_second_row(db):
+    await _setup()
+    month = (date(2026, 11, 1), date(2026, 11, 30))
+    unsigned = payment('60000', datetime(2026, 11, 16, 18, 7, 41), description='OOO YANDEXGO UB', direction='unknown')
+    await engine.run_sync(OneReport(PeriodReport(*month, [unsigned])), queries.DbStore(OWNER), TODAY, 7)
+    tx = await queries.next_pending(OWNER)
+
+    assert await queries.set_direction(OWNER, tx.id, 'out')
+    assert not await queries.set_direction(OWNER, tx.id, 'in')      # only while it is still unknown
+    assert not await queries.set_direction(OTHER, tx.id, 'in')
+    await engine.run_sync(OneReport(PeriodReport(*month, [unsigned])), queries.DbStore(OWNER), TODAY, 7)
+
+    rows = await _rows(SourceTransaction, SourceTransaction.user_id == OWNER)
+    assert [(r.direction, r.delivery) for r in rows] == [('out', 'new')]
+    audit = await _rows(SourceTransactionAudit)
+    assert [(a.field, a.new_value, a.reason) for a in audit] == [('direction', 'out', 'user_set')]
+
+
 async def test_failed_payments_are_never_offered(db):
     await _setup()
     report = PeriodReport(date(2026, 11, 10), date(2026, 11, 16), [payment('99000', datetime(2026, 11, 12, 18, 0), status='failed')])

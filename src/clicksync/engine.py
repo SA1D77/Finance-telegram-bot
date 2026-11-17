@@ -192,7 +192,7 @@ async def run_sync(adapter: Adapter, store: Store, today: date, overlap_days: in
             result.end_of_history = True
             break
         if (previous.start, previous.end) not in seen and previous.start >= report.start:
-            raise SyncError('Кнопка «раньше» открыла не более ранний период. Проверьте подписи кнопок в настройках (CLICK_BTN_OLDER).')
+            raise SyncError('Переход к прошлому периоду открыл не более ранний период. Синхронизация остановлена, проверьте отчёты в @clickuz.')
         report = previous
     else:
         raise SyncError('Слишком много периодов за один запуск: похоже на зацикливание. Синхронизация остановлена.')

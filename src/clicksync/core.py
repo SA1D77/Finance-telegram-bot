@@ -4,12 +4,14 @@ Deduplication (documented strategy)
 -----------------------------------
 1. A transaction with the source's own id is keyed by that id: `id:<sha1>`.
 2. Without one the key is a hash of what identifies a payment in the report: masked account, time to the
-   minute as printed, amount, currency, direction and the description (case and spaces ignored), plus the
-   occurrence number among identical rows of the same period report: `h:<sha256>:<n>`.
+   minute as printed, amount, currency and the description (case and spaces ignored), plus the occurrence
+   number among identical rows of the same period report: `h:<sha256>:<n>`. The direction is left out: the
+   monthly file has no sign, so it may become known only on a later read, and must not create a second row.
    Reading the same or an overlapping report again gives the same keys, so nothing is inserted twice.
 3. Rows that had an identical twin are flagged `ambiguous`: two equal payments in one minute cannot be told
    apart from one payment printed twice, and the user is shown that flag when classifying.
 The status is not part of the key, so pending -> completed updates the stored row instead of adding one.
+An 'unknown' status or direction never overwrites a known one.
 """
 import hashlib
 import re
@@ -62,6 +64,7 @@ class StoredTx:
     description: Optional[str] = None
     source_id: Optional[str] = None
     ambiguous: bool = False
+    direction: str = 'unknown'
 
 
 @dataclass
@@ -108,7 +111,7 @@ def _plain(value: Decimal) -> str:
 def _identity(tx: ParsedTx) -> str:
     description = ' '.join((tx.description or '').casefold().split())
     when = tx.occurred_at.strftime('%Y-%m-%dT%H:%M') if tx.occurred_at else ''
-    return '|'.join([tx.account or '', when, _plain(tx.amount), (tx.currency or '').upper(), tx.direction, description])
+    return '|'.join([tx.account or '', when, _plain(tx.amount), (tx.currency or '').upper(), description])
 
 
 def dedup_keys(transactions: Sequence[ParsedTx]) -> List[Tuple[str, bool]]:
@@ -150,6 +153,8 @@ def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
             changes['status'] = (stored.status, tx.status)
         if tx.amount != stored.amount:
             changes['amount'] = (stored.amount, tx.amount)
+        if tx.direction != stored.direction and tx.direction != 'unknown':
+            changes['direction'] = (stored.direction, tx.direction)
         for name in ('fee', 'fee_included', 'description', 'source_id'):
             new = getattr(tx, name)
             if new is not None and new != getattr(stored, name):
@@ -161,8 +166,9 @@ def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
             continue
         recorded = stored.delivery in ('delivered', 'linked')
         became_invalid = 'status' in changes and stored.status == 'completed'
+        turned = 'direction' in changes and stored.direction != 'unknown'
         plan.updates.append(TxUpdate(stored=stored, changes=changes,
-                                     needs_review=recorded and (became_invalid or 'amount' in changes)))
+                                     needs_review=recorded and (became_invalid or 'amount' in changes or turned)))
     return plan
 
 

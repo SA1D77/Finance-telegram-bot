@@ -147,6 +147,27 @@ async def test_own_transfer_is_not_income_or_expense(harness, fq):
     assert 'перевод между своими' in harness.session.requests[-2].text
 
 
+async def test_payment_without_a_sign_asks_the_direction_first(harness, fq, monkeypatch):
+    fq.queue[0].direction = 'unknown'
+    chosen = []
+
+    async def set_direction(user_id, transaction_id, direction):
+        chosen.append((transaction_id, direction))
+        fq.queue[0].direction = direction
+        return True
+
+    monkeypatch.setattr(ch.queries, 'set_direction', set_direction)
+    await harness.feed(make_callback('cs:q'))
+    card = harness.session.requests[-2]
+    assert 'нет знака' in card.text
+    assert ('➖ Расход', 'cs:dir:5:out') in buttons_of(card) and not any(d.startswith('cs:c:') for _, d in buttons_of(card))
+
+    await harness.feed(make_callback('cs:dir:5:out'))
+
+    assert chosen == [(5, 'out')]
+    assert ('✅ Кафе (как в прошлый раз)', 'cs:c:5:1') in buttons_of(harness.session.requests[-2])
+
+
 async def test_sync_now_and_start_date(harness, fq):
     await harness.feed(make_callback('cs:now'))
     assert fq.requested == 1

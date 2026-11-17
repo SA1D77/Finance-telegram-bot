@@ -109,6 +109,7 @@ def test_description_case_and_spaces_do_not_matter():
 
 
 def _stored(key, row, delivery='new', **kw) -> StoredTx:
+    kw.setdefault('direction', row.direction)
     return StoredTx(id=kw.pop('id', 1), dedup_key=key, status=row.status, amount=row.amount, delivery=delivery,
                     description=row.description, **kw)
 
@@ -283,7 +284,7 @@ class FakeStore:
 
     async def existing(self, keys):
         return {k: StoredTx(id=r['id'], dedup_key=k, status=r['tx'].status, amount=r['tx'].amount, delivery=r['delivery'],
-                            description=r['tx'].description, ambiguous=r['ambiguous'])
+                            description=r['tx'].description, ambiguous=r['ambiguous'], direction=r['tx'].direction)
                 for k, r in self.rows.items() if k in keys}
 
     async def apply(self, period_id, report, plan, status, note, findings):
@@ -453,57 +454,89 @@ async def test_no_start_date_no_run():
 
 # --- Adapter against a scripted @clickuz ------------------------------------------------------
 
-PROFILE = Profile(reports_command='/reports', payments='Платежи', older='◀', download='', next_page='')
+PROFILE = Profile(reports_command='/reports', payments='Платежи', download='Скачать', next_page='▶')
+CARD = '561468******6104'
+HEADER = ('№ платежа', 'Сумма', 'Время', 'Карта', 'Сервис', 'Комиссия', 'Параметры оплаты', 'Статус платежа')
 
 
-def report_text(start: date, body: str = '') -> str:
-    return f'🗓 Платежи c {start:%d.%m.%Y} до {start + timedelta(days=6):%d.%m.%Y}\n\n{body}'
+def xlsx(path, rows, header=HEADER):
+    """A file laid out like the real click-payments-<id>-<YYYYMM>.xlsx: every value is text, amounts unsigned."""
+    import xlsxwriter
+    book = xlsxwriter.Workbook(str(path))
+    sheet = book.add_worksheet()
+    sheet.write_row(0, 0, header)
+    for number, row in enumerate(rows, start=1):
+        for column, value in enumerate(row):
+            if value not in (None, ''):
+                sheet.write_string(number, column, value)
+    book.close()
+    return path
 
 
-class ScriptedBot:
-    """Answers like the real flow: /reports -> menu, Платежи -> newest report, ◀ -> the previous one."""
+def file_row(amount, when, service, number='', status='Успешно проведен', card=CARD, fee=''):
+    return (number, amount, when, card, service, fee, '', status)
 
-    NAV = [Button('◀ Назад', 'callback'), Button('Вперёд ▶', 'callback'), Button('Скачать', 'callback'),
-           Button('Оплатить', 'callback'), Button('Сайт', 'url')]
 
-    def __init__(self, reports: List[str]) -> None:
-        self.reports = reports
+WEEK = ("🗓 Платежи c 10.11.2026 до 17.11.2026\n\n"
+        "➖ 60'000 UZS\n🔹 OOO YANDEXGO UB\n💳 561468******6104\n🕕 18:07 16.11.2026\n✅ Успешно\n\n"
+        "➕ 2'100'000 UZS\n🔹 AHDIJAH KHAMKORBAHK\n💳 561468******6104\n🕕 18:06 16.11.2026\n✅ Успешно\n")
+WEEK_PAGE_2 = ("🗓 Платежи c 10.11.2026 до 17.11.2026\n\n"
+               "➖ 2'500 UZS\n🔹 OOO ATTO TOLOV\n💳 561468******6104\n🕕 18:12 13.11.2026\n✅ Успешно\n")
+QUIET_WEEK = '🗓 Платежи c 10.11.2026 до 17.11.2026\n\nПлатежей нет'
+VIEW_BUTTONS = [Button('◀️', 'callback'), Button('1️⃣', 'callback'), Button('▶️', 'callback'), Button('💳', 'callback'),
+                Button('⬇️ Скачать', 'callback'), Button('⬅️ Назад', 'callback')]
+MENU = [Button(label, 'text') for label in ('👑 Click Подписка', '💳 Мои карты', '💸 Оплата', '🔀 Переводы', '📊 Отчеты')]
+
+
+class ScriptedClick:
+    """Answers like the real @clickuz (17.11.2026): /reports -> Платежи -> weekly pages -> Скачать -> month -> file."""
+
+    def __init__(self, tmp_path, months: Dict[str, list], pages=(WEEK, WEEK_PAGE_2)) -> None:
+        self.tmp_path = tmp_path
+        self.months = months        # 'YYYY.MM' -> file rows; the order is the order of the buttons
+        self.pages = list(pages)
+        self.page = 0
         self.messages: List[BotMessage] = []
         self.sent: List[str] = []
         self.pressed: List[str] = []
-        self.position = 0
+        self.files: Dict[int, object] = {}
 
-    def _say(self, text, buttons):
-        self.messages.append(BotMessage(id=len(self.messages) + 1, text=text, buttons=buttons))
-
-    def _nav(self):
-        buttons = list(self.NAV)
-        if self.position == len(self.reports) - 1:
-            buttons = buttons[1:]   # the oldest report has no ◀
-        return buttons
+    def _say(self, text, buttons=(), has_file=False):
+        self.messages.append(BotMessage(id=len(self.messages) + 1, text=text, buttons=list(buttons), has_file=has_file))
+        return self.messages[-1].id
 
     async def send(self, text):
         self.sent.append(text)
         if text == '/reports':
-            self._say('Выберите отчёт', [Button('Платежи', 'callback'), Button('Пополнения', 'callback')])
+            self._say('Выберите нужный раздел 👇', MENU)
+            self._say('✅ Мониторинг карт активен', [Button('💸 Платежи', 'callback'), Button('📊 Мониторинг карт', 'callback')])
 
     async def recent(self, limit=8):
         return list(reversed(self.messages))[:limit]
 
     async def press(self, message_id, index):
-        message = next(m for m in self.messages if m.id == message_id)
-        label = message.buttons[index].text
+        label = self.messages[message_id - 1].buttons[index].text
         self.pressed.append(label)
-        if label == 'Платежи':
-            self.position = 0
-            self._say(self.reports[0], self._nav())
-        elif label.startswith('◀'):
-            self.position += 1
-            # Like many bots: the report message is edited in place (same id, new text).
-            self.messages[message_id - 1] = BotMessage(id=message_id, text=self.reports[self.position], buttons=self._nav())
+        if label == '💸 Платежи':      # the report replaces the menu message in place
+            self.messages[message_id - 1] = BotMessage(id=message_id, text=self.pages[0], buttons=VIEW_BUTTONS)
+        elif label == '▶️':
+            if self.page + 1 < len(self.pages):     # on the last page nothing changes
+                self.page += 1
+                self.messages[message_id - 1] = BotMessage(id=message_id, text=self.pages[self.page], buttons=VIEW_BUTTONS)
+        elif label == '⬇️ Скачать':
+            self._say('Выберите месяц 👇', [Button(m, 'callback') for m in self.months])
+        elif clickuz.MONTH_LABEL.match(label):
+            year, month = (int(x) for x in label.split('.'))
+            self._say('⏳ Пожалуйста, подождите. Это может занять некоторое время')
+            last = (date(year + (month == 12), month % 12 + 1, 1) - timedelta(days=1)).day
+            path = xlsx(self.tmp_path / f'click-payments-1-{year}{month:02d}.xlsx', self.months[label])
+            file_id = self._say(f'🗓 История платежей с 01.{month:02d}.{year} по {last}.{month:02d}.{year}', has_file=True)
+            self.files[file_id] = path
+        else:
+            raise AssertionError(f'pressed {label}')
 
     async def download(self, message_id, directory):
-        raise AssertionError('not configured')
+        return self.files[message_id]
 
 
 async def no_sleep(_seconds):
@@ -511,67 +544,140 @@ async def no_sleep(_seconds):
 
 
 def adapter(bot, profile=PROFILE):
-    return ClickAdapter(bot, profile, step_delay=0, reply_timeout=2, sleep=no_sleep)
+    return ClickAdapter(bot, profile, download_dir=bot.tmp_path, step_delay=0, reply_timeout=2, file_timeout=2,
+                        sleep=no_sleep)
 
 
-async def test_adapter_opens_reports_and_walks_back():
-    bot = ScriptedBot([report_text(date(2026, 11, 10), "➖ 1'000 UZS\n🔹 A\n🕘 10:00 11.11.2026\n✅ Успешно"),
-                       report_text(date(2026, 11, 3), "➕ 2'000 UZS\n🔹 B\n🕘 10:00 04.11.2026\n✅ Успешно")])
+NOVEMBER = [file_row('60000', '16.11.2026 18:07:41', 'OOO YANDEXGO UB'),
+            file_row('2100000', '16.11.2026 18:06:02', 'AHDIJAH KHAMKORBAHK'),
+            file_row('2500', '13.11.2026 18:12:55', 'OOO ATTO TOLOV'),
+            file_row('45000', '02.11.2026 09:00:00', 'XK DREAM DENTAL'),
+            file_row('6490', '01.11.2026 00:05:00', 'Istoriya po karte', number='4512345678')]
+OCTOBER = [file_row('37000', '23.10.2026 21:48:10', 'LLC MADINA QANDOLAT'),
+           file_row('99000', '22.10.2026 18:00:00', 'KORZINKA', status='Отклонен'),
+           file_row('10000', '05.10.2026 12:00:00', 'EARLY')]
+
+
+async def test_adapter_reads_months_from_files_and_signs_from_the_weekly_report(tmp_path):
+    bot = ScriptedClick(tmp_path, {'2026.11': NOVEMBER, '2026.10': OCTOBER})
     click = adapter(bot)
 
-    first = await click.open()
-    second = await click.older()
+    november = await click.open()
+    october = await click.older()
     end = await click.older()
 
-    assert bot.sent == ['/reports'] and bot.pressed == ['Платежи', '◀ Назад']
-    assert (first.start, first.transactions[0].amount) == (date(2026, 11, 10), D('1000'))
-    assert (second.start, second.transactions[0].direction) == (date(2026, 11, 3), 'in')
-    assert end is None      # no ◀ on the oldest report
+    assert bot.sent == ['/reports']
+    assert bot.pressed == ['💸 Платежи', '▶️', '▶️', '⬇️ Скачать', '2026.11', '⬇️ Скачать', '2026.10', '⬇️ Скачать']
+    assert (november.start, november.end, november.complete) == (date(2026, 11, 1), date(2026, 11, 30), True)
+    rows = {t.description: t for t in november.transactions}
+    assert rows['OOO YANDEXGO UB'].direction == 'out' and rows['AHDIJAH KHAMKORBAHK'].direction == 'in'
+    assert rows['OOO ATTO TOLOV'].direction == 'out'            # from the second page of the week
+    assert rows['XK DREAM DENTAL'].direction == 'unknown'       # older than the week: the owner will say
+    assert rows['Istoriya po karte'].source_id == '4512345678'
+    assert all(t.currency == 'UZS' and t.account == CARD for t in november.transactions)
+    assert rows['OOO YANDEXGO UB'].occurred_at == datetime(2026, 11, 16, 18, 7, 41)
+    assert (october.start, [t.status for t in october.transactions]) == (date(2026, 10, 1), ['completed', 'failed', 'completed'])
+    assert end is None                                          # Click offers no September
+    assert not list(tmp_path.glob('*.xlsx'))                    # read files are not kept on disk
 
 
-async def test_adapter_never_presses_anything_outside_the_profile():
-    bot = ScriptedBot([report_text(date(2026, 11, 10))])
-    click = adapter(bot, replace(PROFILE, older='Оплатить'))  # misconfigured on purpose
+async def test_adapter_never_presses_anything_else(tmp_path):
+    bot = ScriptedClick(tmp_path, {'2026.11': NOVEMBER})
+    click = adapter(bot)
     await click.open()
-    with pytest.raises(engine.SyncError):
-        await click._press(click.view, 'Сайт')                 # not in the profile
-    with pytest.raises(engine.SyncError):
-        await adapter(bot, replace(PROFILE, older='Сайт'))._press(bot.messages[-1], 'Сайт')   # a link, never pressed
-    assert 'Сайт' not in bot.pressed
+    menu = bot.messages[0]
+    for message, label in ((menu, 'Оплата'), (menu, 'Переводы'), (click.view, 'Назад'), (click.view, '💳')):
+        with pytest.raises(engine.SyncError):
+            await click._press(message, label)
+    assert not any(word in ' '.join(bot.pressed) for word in ('Оплата', 'Переводы', 'Назад'))
+    with pytest.raises(engine.SyncError):     # a link is never pressed, even when it is named in the settings
+        await adapter(bot, replace(PROFILE, download='Сайт'))._press(
+            BotMessage(id=99, text='', buttons=[Button('Сайт', 'url')]), 'Сайт')
 
 
-async def test_adapter_refuses_to_start_without_the_period_button_label():
-    with pytest.raises(engine.SyncError, match='CLICK_BTN_OLDER'):
-        await adapter(ScriptedBot([report_text(date(2026, 11, 10))]), replace(PROFILE, older='')).open()
+async def test_currency_comes_from_the_week_or_the_setting(tmp_path):
+    with pytest.raises(engine.SyncError, match='CLICK_CURRENCY'):
+        await adapter(ScriptedClick(tmp_path, {'2026.11': NOVEMBER}, pages=(QUIET_WEEK,))).open()
+    bot = ScriptedClick(tmp_path, {'2026.11': NOVEMBER}, pages=(QUIET_WEEK,))
+    report = await adapter(bot, replace(PROFILE, currency='UZS')).open()
+    assert {t.currency for t in report.transactions} == {'UZS'}
+    assert {t.direction for t in report.transactions} == {'unknown'}
 
 
-async def test_adapter_reads_every_page_and_stops_on_a_repeated_one():
-    pages = [report_text(date(2026, 11, 10), "➖ 1'000 UZS\n🔹 A\n🕘 10:00 11.11.2026\n✅ Успешно"),
-             report_text(date(2026, 11, 10), "➖ 2'000 UZS\n🔹 B\n🕘 11:00 11.11.2026\n✅ Успешно")]
-
-    class Paged(ScriptedBot):
-        page = 0
-
-        async def press(self, message_id, index):
-            label = (next(m for m in self.messages if m.id == message_id)).buttons[index].text
-            self.pressed.append(label)
-            if label == 'Платежи':
-                self._say(pages[0], [Button('◀ Назад', 'callback'), Button('Ещё', 'callback')])
-            elif label == 'Ещё':
-                self.page = min(self.page + 1, len(pages) - 1)      # after the last page it shows the last again
-                self._say(pages[self.page], [Button('◀ Назад', 'callback'), Button('Ещё', 'callback')])
-
-    bot = Paged([])
-    report = await adapter(bot, replace(PROFILE, next_page='Ещё')).open()
-
-    assert [t.amount for t in report.transactions] == [D('1000'), D('2000')]
-    assert report.pages == 2 and report.complete
-
-
-async def test_adapter_marks_unreadable_reports_incomplete():
-    bot = ScriptedBot([report_text(date(2026, 11, 10), 'Новый формат\nстрока\nещё строка\nи ещё')])
+async def test_unreadable_rows_make_the_month_incomplete(tmp_path):
+    bot = ScriptedClick(tmp_path, {'2026.11': NOVEMBER + [file_row('много', '16.11.2026 10:00:00', 'X')]})
     report = await adapter(bot).open()
-    assert not report.complete and 'формат' in report.note
+    assert not report.complete and 'не прочитано строк файла: 1' in report.note
+
+
+async def test_missing_file_is_an_error_not_an_empty_month(tmp_path):
+    class Silent(ScriptedClick):
+        async def press(self, message_id, index):
+            label = self.messages[message_id - 1].buttons[index].text
+            if clickuz.MONTH_LABEL.match(label):
+                self.pressed.append(label)
+                self._say('⏳ Пожалуйста, подождите. Это может занять некоторое время')
+                return
+            await super().press(message_id, index)
+
+    with pytest.raises(engine.SyncError, match='не прислал файл'):
+        await adapter(Silent(tmp_path, {'2026.11': NOVEMBER})).open()
+
+
+async def test_engine_walks_months_back_to_the_start_date(tmp_path):
+    bot = ScriptedClick(tmp_path, {'2026.11': NOVEMBER, '2026.10': OCTOBER, '2026.09': []})
+    result = await engine.run_sync(adapter(bot), FakeStore(start=date(2026, 10, 15)), date(2026, 11, 17), 7)
+    assert [start for start, _ in result.visited] == [date(2026, 11, 1), date(2026, 10, 1)]
+    assert '2026.09' not in bot.pressed         # October already reaches the start date
+    assert result.skipped_before_start == 1     # the 05.10 row is before the chosen start
+
+
+# --- Report file -----------------------------------------------------------------------------------
+
+def test_report_file_reads_the_real_layout(tmp_path):
+    from clicksync.report_file import parse_report_file
+    rows = [file_row("1'200'000", '16.11.2026 10:47:00', 'XK  DREAM DENTAL', fee='1 500,50'),
+            file_row('-2500.00', '16.11.2026 11:23:00', 'OOO ATTO TOLOV', status='Отменен'),
+            ('', '', '', '', '', '', '', '')]
+    path = xlsx(tmp_path / 'r.xlsx', rows)
+    report = parse_report_file(path)
+    first, second = report.transactions
+    assert (first.amount, first.direction, first.description, first.fee) == (D('1200000'), 'unknown', 'XK DREAM DENTAL', D('1500.50'))
+    assert (second.amount, second.direction, second.status) == (D('2500.00'), 'out', 'reversed')
+    assert report.unreadable == 0
+
+
+def test_report_file_finds_columns_by_name_not_position(tmp_path):
+    from clicksync.report_file import parse_report_file
+    path = xlsx(tmp_path / 'r.xlsx', [('Успешно проведен', '16.11.2026 10:47:00', '60000', 'OOO YANDEXGO UB')],
+                header=('Статус платежа', 'Время', 'Сумма', 'Сервис'))
+    (row,) = parse_report_file(path).transactions
+    assert (row.amount, row.status, row.description, row.account) == (D('60000'), 'completed', 'OOO YANDEXGO UB', None)
+
+
+@pytest.mark.parametrize('content', [b'not a zip', None])
+def test_report_file_of_another_format_is_refused(tmp_path, content):
+    from clicksync.report_file import UnknownReportFormat, parse_report_file
+    path = tmp_path / 'r.xlsx'
+    if content is None:
+        xlsx(path, [('a', 'b')], header=('Дата операции', 'Описание'))
+    else:
+        path.write_bytes(content)
+    with pytest.raises(UnknownReportFormat):
+        parse_report_file(path)
+
+
+def test_direction_is_not_part_of_the_key_and_unknown_never_overwrites():
+    out = tx(direction='out')
+    key = core.dedup_keys([out])
+    assert key == core.dedup_keys([replace(out, direction='unknown')])
+    stored = {key[0][0]: _stored(key[0][0], out, direction='unknown')}
+    plan = core.plan_ingest(stored, [out], key)
+    assert plan.updates[0].changes == {'direction': ('unknown', 'out')} and not plan.updates[0].needs_review
+    known = {key[0][0]: _stored(key[0][0], out)}
+    assert core.plan_ingest(known, [replace(out, direction='unknown')], key).unchanged == 1
+    recorded = {key[0][0]: _stored(key[0][0], out, delivery='delivered', direction='in')}
+    assert core.plan_ingest(recorded, [out], key).updates[0].needs_review
 
 
 # --- Worker ---------------------------------------------------------------------------------------

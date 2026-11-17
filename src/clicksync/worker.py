@@ -139,7 +139,8 @@ async def main() -> int:
             port = TelethonPort(client, settings.BOT)
             await port.start()
         return ClickAdapter(port, settings.profile(), download_dir=settings.DATA_DIR / 'reports',
-                            step_delay=settings.STEP_DELAY, reply_timeout=settings.REPLY_TIMEOUT)
+                            step_delay=settings.STEP_DELAY, reply_timeout=settings.REPLY_TIMEOUT,
+                            file_timeout=settings.FILE_TIMEOUT)
 
     logger.info('Click sync worker started')
     while True:

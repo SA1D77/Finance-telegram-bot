@@ -192,7 +192,8 @@ async def _card(tx):
             rows.append([_button(f'✅ {name.capitalize()} (как в прошлый раз)', f'cs:c:{tx.id}:{remembered}')])
         rows += buttons.category_grid(categories, f'cs:c:{tx.id}:')
     else:
-        text = tx_card(tx, 1, total) + '\n\nНаправление неизвестно: такой платёж можно только связать или пропустить.'
+        text = (tx_card(tx, 1, total) + '\n\nВ файле Click у этого платежа нет знака. Это расход или доход?')
+        rows.append([_button('➖ Расход', f'cs:dir:{tx.id}:out'), _button('➕ Доход', f'cs:dir:{tx.id}:in')])
     rows.append([_button('🔗 Уже записано', f'cs:l:{tx.id}'), _button('🔁 Перевод между своими', f'cs:o:{tx.id}')])
     rows.append([_button('⏭ Не записывать', f'cs:i:{tx.id}'), _button('⏹ Позже', 'cs:home')])
     return text, _markup(*rows)
@@ -268,6 +269,15 @@ async def classify(callback_query: types.CallbackQuery):
         if tx.direction == 'out':
             await schedule_budget_check(OWNER_ID)
     await _show_next(callback_query, note)
+    await callback_query.answer()
+
+
+@router.callback_query(F.data.startswith('cs:dir:'))
+async def choose_direction(callback_query: types.CallbackQuery):
+    parts = callback_query.data.split(':')
+    if len(parts) == 4 and parts[2].isdigit() and parts[3] in ('in', 'out'):
+        await queries.set_direction(OWNER_ID, int(parts[2]), parts[3])
+    await _show_next(callback_query)
     await callback_query.answer()
 
 
