@@ -71,6 +71,9 @@ class SourceTransaction(Base):
     delivery = Column(String(12), nullable=False, default='new')
     accounting_id = Column(UUID(as_uuid=True), ForeignKey(Accounting.id, ondelete='SET NULL'), nullable=True)
     period_id = Column(Integer, ForeignKey(SyncPeriod.id, ondelete='SET NULL'), nullable=True)
+    # A complete report of its period no longer shows it (cancelled, or replaced by a corrected row that could
+    # not be matched with certainty): kept, but not offered for recording and not counted. NULL: present.
+    missing_at = Column(TIMESTAMP, nullable=True)
     first_seen_at = Column(TIMESTAMP, nullable=False, default=utc_now)
     updated_at = Column(TIMESTAMP, nullable=False, default=utc_now)
 

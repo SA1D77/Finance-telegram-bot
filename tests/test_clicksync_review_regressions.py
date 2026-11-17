@@ -145,6 +145,92 @@ def test_missing_source_id_preserves_the_key_without_discarding_other_updates():
     assert plan.updates[0].changes == {'status': ('pending', 'completed')}
 
 
+# --- Payments that a complete report no longer shows ---------------------------------------------------------
+
+def _week_rows(*amounts):
+    return [tx(a, when=datetime(2026, 11, 11 + i, 9, 0)) for i, a in enumerate(amounts)]
+
+
+def _rows_by_amount(store):
+    return {r['tx'].amount: r for r in store.rows.values()}
+
+
+async def _sync(store, report):
+    return await engine.run_sync(FakeAdapter([report]), store, TODAY, 7)
+
+
+async def test_a_payment_gone_from_a_complete_report_stops_counting_and_comes_back_if_shown_again():
+    store = FakeStore(start=TODAY.replace(day=10))
+    rows = _week_rows('100', '200', '300', '400')
+    await _sync(store, week(TODAY.replace(day=10), rows))
+    await _sync(store, week(TODAY.replace(day=10), rows[:3]))      # 400 cancelled in Click
+    gone = _rows_by_amount(store)[D('400')]
+    assert gone['missing_at'] is not None and len(store.rows) == 4
+    assert all(r.get('missing_at') is None for amount, r in _rows_by_amount(store).items() if amount != D('400'))
+    assert store.findings == {}         # not recorded yet: nothing to ask
+
+    await _sync(store, week(TODAY.replace(day=10), rows))          # shown again
+    assert _rows_by_amount(store)[D('400')]['missing_at'] is None
+
+
+async def test_a_recorded_payment_that_vanished_is_asked_about_once():
+    store = FakeStore(start=TODAY.replace(day=10))
+    rows = _week_rows('100', '200', '300', '400')
+    await _sync(store, week(TODAY.replace(day=10), rows))
+    _rows_by_amount(store)[D('400')]['delivery'] = 'delivered'
+    await _sync(store, week(TODAY.replace(day=10), rows[:3]))
+    await _sync(store, week(TODAY.replace(day=10), rows[:3]))
+    assert [f.kind for f in store.findings.values()] == ['missing_from_report']
+    assert 'больше не учитывается' in next(iter(store.findings.values())).details
+
+
+async def test_incomplete_report_marks_nothing():
+    store = FakeStore(start=TODAY.replace(day=10))
+    rows = _week_rows('100', '200', '300', '400')
+    await _sync(store, week(TODAY.replace(day=10), rows))
+    await _sync(store, week(TODAY.replace(day=10), rows[:3], complete=False, note='2 строки не прочитаны'))
+    assert all(r.get('missing_at') is None for r in store.rows.values())
+
+
+async def test_a_report_that_lost_most_payments_marks_nothing_and_is_read_again():
+    store = FakeStore(start=TODAY.replace(day=10))
+    rows = _week_rows('100', '200', '300', '400', '500', '600')
+    await _sync(store, week(TODAY.replace(day=10), rows))
+    result = await _sync(store, week(TODAY.replace(day=10), rows[:1]))
+    assert all(r.get('missing_at') is None for r in store.rows.values())
+    assert result.periods_incomplete == 1 and [f.kind for f in store.findings.values()] == ['report_shrank']
+    assert store.periods[(TODAY.replace(day=10), TODAY.replace(day=16))]['status'] == 'incomplete'
+
+
+async def test_rows_before_the_start_date_are_never_marked():
+    store = FakeStore(start=TODAY.replace(day=10))
+    early = tx('900', when=datetime(2026, 11, 9, 9, 0))
+    store.rows['early'] = {'id': 99, 'tx': early, 'ambiguous': False, 'delivery': 'delivered'}
+    await _sync(store, week(TODAY.replace(day=8), _week_rows('100')))
+    assert store.rows['early'].get('missing_at') is None
+
+
+async def test_ambiguous_merchant_correction_of_a_recorded_payment_is_not_silent():
+    store = FakeStore(start=TODAY.replace(day=10))
+    original = tx('50000', when=datetime(2026, 11, 12, 9, 0, 31))
+    others = _week_rows('100', '200', '300')
+    await _sync(store, week(TODAY.replace(day=10), [original] + others))
+    _rows_by_amount(store)[D('50000')]['delivery'] = 'delivered'
+    corrected = [replace(original, description=name) for name in ('SHOP A', 'SHOP B')]
+    await _sync(store, week(TODAY.replace(day=10), corrected + others))
+    old = next(r for r in store.rows.values() if r['id'] == 1)
+    assert old['missing_at'] is not None        # no longer counted next to the two corrected rows
+    assert [f.kind for f in store.findings.values()] == ['missing_from_report']
+    assert sum(1 for r in store.rows.values() if r['ambiguous']) == 2
+
+
+def test_vanish_limit_scales_with_the_period():
+    plan = core.IngestPlan()
+    rows = [core.StoredTx(i, f'k{i}', 'completed', D('1'), 'new', occurred_at=datetime(2026, 11, 12)) for i in range(10)]
+    assert core.plan_vanished(plan, rows, set(range(5)), datetime(2026, 11, 18)) and len(plan.updates) == 5
+    assert not core.plan_vanished(core.IngestPlan(), rows, set(range(4)), datetime(2026, 11, 18))
+
+
 @pytest.mark.parametrize('description', ['message is not modified', 'chat not found'])
 async def test_repeated_sync_handles_only_unchanged_message_errors(monkeypatch, description):
     state = SimpleNamespace(start_date=TODAY)

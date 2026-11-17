@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
 @dataclass(frozen=True)
@@ -68,6 +68,7 @@ class StoredTx:
     account: Optional[str] = None
     occurred_at: Optional[datetime] = None
     currency: Optional[str] = None
+    missing_at: Optional[datetime] = None   # a complete report of its period no longer showed it
 
 
 @dataclass
@@ -206,6 +207,8 @@ def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
                 changes[name] = (getattr(stored, name), new)
         if ambiguous and not stored.ambiguous:
             changes['ambiguous'] = (False, True)
+        if stored.missing_at is not None:       # shown again: it counts again
+            changes['missing_at'] = (stored.missing_at, None)
         if not changes:
             plan.unchanged += 1
             continue
@@ -216,6 +219,29 @@ def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
         plan.updates.append(TxUpdate(stored=stored, changes=changes,
                                      needs_review=recorded and reviewed_change))
     return plan
+
+
+# More rows than this vanishing from one complete report looks like a broken report, not cancelled payments.
+VANISH_LIMIT = 3
+
+
+def plan_vanished(plan: IngestPlan, period_rows: Sequence[StoredTx], seen_ids: Set[int], now: datetime) -> bool:
+    """Marks the stored rows of a completely read period that the report no longer shows.
+
+    Such a row was cancelled in Click or replaced by a corrected row that could not be matched to it with
+    certainty. It stays stored (and recorded, if it was), but stops counting as a payment: it is not offered for
+    recording and not counted in the balance reconciliation. A recorded one becomes a question (needs_review).
+    Returns False, marking nothing, when so many rows vanished that the report itself is suspect.
+    """
+    updated = {u.stored.id for u in plan.updates}
+    gone = [row for row in period_rows
+            if row.id not in seen_ids and row.id not in updated and row.missing_at is None and row.occurred_at]
+    if len(gone) > max(VANISH_LIMIT, len(period_rows) // 2):
+        return False
+    for row in gone:
+        plan.updates.append(TxUpdate(stored=row, changes={'missing_at': (None, now)},
+                                     needs_review=row.delivery in ('delivered', 'linked')))
+    return True
 
 
 def sync_target(today: date, start_date: date, overlap_days: int, history_complete: bool,

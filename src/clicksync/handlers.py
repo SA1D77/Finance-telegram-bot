@@ -493,7 +493,8 @@ def reconciliation_text(transactions, periods_with_balance: list, deliveries: di
 @router.callback_query(F.data == 'cs:rec')
 async def reconciliation(callback_query: types.CallbackQuery):
     raised = await queries.check_ledger(OWNER_ID, current_currency())
-    transactions = await queries.all_transactions(OWNER_ID)
+    # A payment the report no longer shows is not counted (it stays in the export, marked).
+    transactions = [tx for tx in await queries.all_transactions(OWNER_ID) if getattr(tx, 'missing_at', None) is None]
     periods = []
     if await queries.periods_with_balances(OWNER_ID):
         by_period = {}
@@ -513,7 +514,8 @@ async def reconciliation(callback_query: types.CallbackQuery):
 
 
 EXPORT_HEADERS = ['Дата и время (Click)', 'Направление', 'Сумма', 'Валюта', 'Комиссия', 'Комиссия в сумме', 'Статус',
-                  'Описание', 'Карта', 'ID в Click', 'В учёте', 'Перевод между своими', 'Неоднозначный', 'Загружен (UTC)']
+                  'Описание', 'Карта', 'ID в Click', 'В учёте', 'Перевод между своими', 'Неоднозначный', 'Загружен (UTC)',
+                  'Пропал из отчёта (UTC)']
 DELIVERY = {'new': 'ждёт решения', 'delivered': 'записан', 'linked': 'связан', 'ignored': 'не записывать'}
 
 
@@ -530,6 +532,7 @@ def ledger_csv(transactions) -> bytes:
             tx.currency or '', plain(tx.fee), {True: 'да', False: 'нет', None: ''}[tx.fee_included], tx.status,
             tx.description or '', tx.account or '', tx.source_id or '', DELIVERY.get(tx.delivery, tx.delivery),
             'да' if tx.own_transfer else '', 'да' if tx.ambiguous else '', tx.first_seen_at.strftime('%Y-%m-%d %H:%M'),
+            missing.strftime('%Y-%m-%d %H:%M') if (missing := getattr(tx, 'missing_at', None)) else '',
         ])
     return buffer.getvalue().encode('utf-8-sig')
 

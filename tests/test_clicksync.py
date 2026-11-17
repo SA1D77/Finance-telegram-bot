@@ -322,7 +322,11 @@ class FakeStore:
         t = r['tx']
         return StoredTx(id=r['id'], dedup_key=k, status=t.status, amount=t.amount, delivery=r['delivery'],
                         description=t.description, ambiguous=r['ambiguous'], direction=t.direction, source_id=t.source_id,
-                        account=t.account, occurred_at=t.occurred_at, currency=t.currency)
+                        account=t.account, occurred_at=t.occurred_at, currency=t.currency, missing_at=r.get('missing_at'))
+
+    async def period_rows(self, first, last):
+        return [self._stored(k, r) for k, r in self.rows.items()
+                if r['tx'].occurred_at and first <= r['tx'].occurred_at.date() <= last]
 
     async def existing(self, keys):
         return {k: self._stored(k, r) for k, r in self.rows.items() if k in keys}
@@ -342,8 +346,10 @@ class FakeStore:
             old_key, record = next((k, r) for k, r in self.rows.items() if r['id'] == update.stored.id)
             if 'dedup_key' in update.changes:
                 self.rows[update.changes['dedup_key'][1]] = self.rows.pop(old_key)
-            values = {k: v[1] for k, v in update.changes.items() if k not in ('ambiguous', 'dedup_key')}
+            values = {k: v[1] for k, v in update.changes.items() if k not in ('ambiguous', 'dedup_key', 'missing_at')}
             record['tx'] = replace(record['tx'], **values)
+            if 'missing_at' in update.changes:
+                record['missing_at'] = update.changes['missing_at'][1]
             self.audit += [(update.stored.id, k, v) for k, v in update.changes.items()]
         for finding in findings:
             self.findings.setdefault(finding.fingerprint, finding)
