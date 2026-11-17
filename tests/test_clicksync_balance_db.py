@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import uuid
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from urllib.parse import urlparse
@@ -15,8 +16,9 @@ from sqlalchemy import insert, select
 
 from accounting.models import Accounting, OperationType
 from clicksync import balance_queries as bq
-from clicksync import queries, settings
+from clicksync import engine, queries, settings
 from clicksync.balance import parse_balance_reply
+from clicksync.core import ParsedTx, PeriodReport
 from clicksync.models import (BalanceInterval, BalanceIntervalAudit, BalanceObservation, BalanceSnapshot, SourceTransaction,
                               SyncPeriod)
 from middleware import accounting, service, user
@@ -52,11 +54,23 @@ async def _setup(owner=OWNER):
     return category_id
 
 
-async def _payment(amount, local_time, owner=OWNER, account='561468******6104', direction='out', status='completed'):
+async def _payment(amount, local_time, owner=OWNER, account='561468******6104', direction='out', status='completed',
+                   missing_at=None):
     return (await service._execute_insert_update_delete_command(insert(SourceTransaction).values(
         user_id=owner, source='clickuz', dedup_key=uuid.uuid4().hex, occurred_at=local_time, amount=D(amount),
         currency='UZS', direction=direction, status=status, description='OOO SHOP', account=account,
-        ambiguous=False, own_transfer=False, delivery='new').returning(SourceTransaction.id))).scalar()
+        ambiguous=False, own_transfer=False, delivery='new', missing_at=missing_at).returning(SourceTransaction.id))).scalar()
+
+
+class OneReport:
+    def __init__(self, report):
+        self.report = report
+
+    async def open(self):
+        return self.report
+
+    async def older(self):
+        return None
 
 
 async def _rows(model, *where):
@@ -257,6 +271,43 @@ async def test_payments_of_another_card_or_user_are_not_counted(db):
     assert ((await _interval()).status, (await _interval()).remaining) == ('unexplained', D('-50000'))
 
 
+async def test_a_payment_gone_from_the_report_is_not_counted_or_offered(db):
+    await _setup()
+    await _payment('50000', datetime(2026, 11, 16, 12, 0), missing_at=T1)
+    await _two_checks(closing='1000000')
+    await bq.recompute(OWNER, LATER, **TIMING)
+    assert ((await _interval()).status, (await _interval()).remaining) == ('ok', D('0'))
+    assert await queries.pending_count(OWNER) == 0
+
+
+async def test_vanished_and_corrected_payments_in_postgres(db):
+    category_id = await _setup()
+    month = (date(2026, 11, 1), date(2026, 11, 30))
+    others = [ParsedTx(amount=D(a), direction='out', status='completed', occurred_at=datetime(2026, 11, 10 + i, 9, 0),
+                       currency='UZS', description='OOO OTHER', account='561468******6104')
+              for i, a in enumerate(('100', '200', '300'))]
+    original = ParsedTx(amount=D('50000'), direction='out', status='completed', occurred_at=datetime(2026, 11, 16, 12, 0, 31),
+                        currency='UZS', description='OOO SHOP', account='561468******6104')
+    await engine.run_sync(OneReport(PeriodReport(*month, [original] + others)), queries.DbStore(OWNER), date(2026, 11, 18), 7)
+    tx = next(t for t in await queries.all_transactions(OWNER) if t.amount == D('50000'))
+    assert await queries.deliver(OWNER, tx.id, category_id, D('50000'), OperationType.expenditure, 'shop',
+                                 datetime(2026, 11, 16, 7, 0)) == 'ok'
+
+    # Click shows it under two corrected names: which one is it? Not guessed, but the old row stops counting.
+    corrected = [replace(original, description=name) for name in ('SHOP A', 'SHOP B')]
+    await engine.run_sync(OneReport(PeriodReport(*month, corrected + others)), queries.DbStore(OWNER), date(2026, 11, 18), 7)
+    old = await queries.get_transaction(OWNER, tx.id)
+    assert old.missing_at is not None and old.delivery == 'delivered'
+    kinds = [d.kind for d in await queries.open_discrepancies(OWNER)]
+    assert kinds == ['missing_from_report']
+    # The owner links the right corrected payment to the operation the vanished row held.
+    operation_id = queries.delivery_id(OWNER, tx.id)
+    new = [t for t in await queries.all_transactions(OWNER) if t.amount == D('50000') and t.missing_at is None]
+    assert len(new) == 2 and await queries.pending_count(OWNER) == 5
+    assert [op.id for op in await queries.candidates(OWNER, D('50000'), 'UZS', 'UZS', datetime(2026, 11, 16, 7, 0))] == [operation_id]
+    assert await queries.link(OWNER, new[0].id, operation_id)
+
+
 async def test_daily_review_is_claimed_once(db):
     await _setup()
     day = date(2026, 11, 17)
@@ -312,7 +363,7 @@ def test_migration_keeps_existing_data_and_downgrades():
         alembic('upgrade', 'head')
         cursor.execute('SELECT user_id, last_result, balance_requested, paused FROM sync_state ORDER BY user_id')
         assert cursor.fetchall() == [(1001, 'failed', False, False), (2002, 'ok', False, False)]
-        alembic('downgrade', '-1')
+        alembic('downgrade', 'c6f1a8d3b742')
         cursor.execute('SELECT count(*) FROM sync_state')
         assert cursor.fetchone() == (2,)
         cursor.execute("SELECT to_regclass('balance_intervals')")

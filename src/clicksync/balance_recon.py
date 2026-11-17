@@ -33,12 +33,13 @@ judgement; `reason` says why). Nothing is ever recorded from here.
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
-from itertools import product
 from typing import List, Optional, Sequence, Tuple
 
 ZERO = Decimal('0')
 # A report read later than this after the grace period is still missing: stop waiting, say why.
 STALE_AFTER = timedelta(hours=24)
+# Bound subset enumeration when many pending payments or unknown commissions are present.
+MAX_READINGS = 4096
 
 
 @dataclass(frozen=True)
@@ -107,11 +108,45 @@ READINGS = {
 }
 
 
+def _possible_readings(movements: Sequence[Movement]):
+    """One auditable reading per possible net movement, with independent choices for each payment.
+
+    Deduplicate equal net movements at every step, rather than enumerating all combinations. If the
+    bounded search cannot finish, the caller must stay uncertain instead of guessing a missing payment.
+    """
+    readings = {ZERO: (ZERO, ZERO, ZERO, [], ())}
+    for m in movements:
+        if m.status == 'failed':
+            continue
+        options = []
+        if m.status == 'reversed':
+            options.append((ZERO, ZERO, ZERO, [], ()))
+        fee_options = (True, False) if m.fee and m.fee_included is None else (True,)
+        for fee_on_top in fee_options:
+            income, expense, fees, used = _sum([m], True, True, fee_on_top)
+            notes = (READINGS['reversed'],) if m.status == 'reversed' else ()
+            if not fee_on_top:
+                notes += (READINGS['fee'],)
+            options.append((income, expense, fees, used, notes))
+        if m.status == 'pending':
+            options.append((ZERO, ZERO, ZERO, [], (READINGS['pending'],)))
+        next_readings = {}
+        for income, expense, fees, used, notes in readings.values():
+            for inc, out, fee, ids, why in options:
+                total = (income + inc, expense + out, fees + fee, used + ids, tuple(dict.fromkeys(notes + why)))
+                net = total[0] - total[1] - total[2]
+                next_readings.setdefault(net, total)
+                if len(next_readings) > MAX_READINGS:
+                    return None
+        readings = next_readings
+    return readings
+
+
 def reconcile(facts: IntervalFacts, now: datetime, grace: timedelta, boundary: timedelta) -> IntervalResult:
     inside = [m for m in facts.movements if facts.start_at < m.at <= facts.end_at]
     has_pending = any(m.status == 'pending' and m.direction in ('in', 'out') for m in inside)
     has_reversed = any(m.status == 'reversed' and m.direction in ('in', 'out') for m in inside)
-    has_unknown_fee = any(m.fee and m.fee_included is None for m in inside)
+    has_unknown_fee = any(m.fee and m.fee_included is None and m.status != 'failed' for m in inside)
 
     def result_for(pending: bool, reversed_moved: bool, fee_on_top: bool, movements=inside):
         incoming, outgoing, fees, used = _sum(movements, pending, reversed_moved, fee_on_top)
@@ -131,22 +166,26 @@ def reconcile(facts: IntervalFacts, now: datetime, grace: timedelta, boundary: t
         base.reason = (f'у {len(unsigned)} платеж(ей) в этом промежутке неизвестно направление (расход или доход): '
                        'укажите его при разборе платежей в /click')
         return base
+    if any(m.status not in ('completed', 'pending', 'reversed', 'failed') for m in inside):
+        base.reason = 'у части платежей неизвестен статус: нельзя определить, изменили ли они баланс'
+        return base
     if remaining == 0:
         base.status = 'explained' if facts.explained else 'ok'
         return base
-    for pending, reversed_moved, fee_on_top in product((True, False) if has_pending else (True,),
-                                                       (False, True) if has_reversed else (False,),
-                                                       (True, False) if has_unknown_fee else (True,)):
-        if (pending, reversed_moved, fee_on_top) == (True, False, True):
-            continue
-        *_, alt_remaining, _used = result_for(pending, reversed_moved, fee_on_top)
-        if alt_remaining == 0:
-            base.status = 'explained' if facts.explained else 'ok'
-            notes = [READINGS['pending']] if not pending else []
-            notes += [READINGS['reversed']] if reversed_moved else []
-            notes += [READINGS['fee']] if not fee_on_top else []
-            base.reason = 'сходится, ' + ' и '.join(notes)
+    if has_pending or has_reversed or has_unknown_fee:
+        readings = _possible_readings(inside)
+        if readings is None:
+            base.reason = 'слишком много вариантов списаний и комиссий: нельзя однозначно сверить баланс'
             return base
+        target_net = facts.closing - facts.opening - facts.explained
+        matching = readings.get(target_net)
+        if matching is not None:
+            inc, out, fee, ids, notes = matching
+            expected = facts.opening + inc - out - fee
+            return IntervalResult(
+                status='explained' if facts.explained else 'ok', incoming=inc, outgoing=out, fees=fee,
+                expected=expected, difference=facts.closing - expected, remaining=ZERO, used=ids,
+                reason='сходится, ' + ' и '.join(notes) if notes else None)
 
     final_read = facts.report_read_at is not None and facts.report_read_at >= facts.end_at + grace
     if now < facts.end_at + grace or not final_read or facts.report_problem:
@@ -178,6 +217,9 @@ def reconcile(facts: IntervalFacts, now: datetime, grace: timedelta, boundary: t
             return base
     if has_pending:
         base.reason = 'есть платежи «в обработке», а разница ими не объясняется'
+        return base
+    if has_unknown_fee or has_reversed:
+        base.reason = 'неизвестно, включены ли комиссии в суммы' if has_unknown_fee else 'есть отменённые платежи с неясным движением денег'
         return base
     base.status = 'unexplained'
     return base
@@ -246,15 +288,26 @@ def pair_snapshots(snapshots: Sequence[Snap]) -> List[Tuple[int, int]]:
     pairs = []
     for group in observations:
         labels_now = {(s.card, s.currency) for s in group}
+        renamed = []
         for snap in group:
+            unique_now = sum((s.last4, s.currency) == (snap.last4, snap.currency) for s in group) == 1
             prev = last_by_label.get((snap.card, snap.currency))
-            if prev is None and snap.last4:
+            if prev is not None and prev.card != snap.card and not unique_now:
+                prev = None     # an old alias may now belong to a different card with the same ending
+            if prev is None and snap.last4 and unique_now:
                 same = [p for p in previous_group if (p.last4, p.currency) == (snap.last4, snap.currency)]
                 same = [p for p in same if (p.card, p.currency) not in labels_now]
                 if len(same) == 1:
                     prev = same[0]
             if prev is not None:
                 pairs.append((prev.id, snap.id))
+                renamed.append((prev, snap))
+        # Carry historical aliases forward, so a label returning later starts from the latest snapshot,
+        # not the old snapshot of that label. Never redirect a label still belonging to a current card.
+        for prev, snap in renamed:
+            for label, latest in list(last_by_label.items()):
+                if latest.id == prev.id and label not in labels_now:
+                    last_by_label[label] = snap
         for snap in group:
             last_by_label[(snap.card, snap.currency)] = snap
         previous_group = group

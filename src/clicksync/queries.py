@@ -113,7 +113,7 @@ def _stored(row) -> StoredTx:
     return StoredTx(id=row.id, dedup_key=row.dedup_key, status=row.status, amount=row.amount, delivery=row.delivery,
                     fee=row.fee, fee_included=row.fee_included, description=row.description, source_id=row.source_id,
                     ambiguous=row.ambiguous, direction=row.direction, account=row.account, occurred_at=row.occurred_at,
-                    currency=row.currency)
+                    currency=row.currency, missing_at=row.missing_at)
 
 
 class DbStore:
@@ -173,6 +173,13 @@ class DbStore:
             SourceTransaction.user_id == self.user_id, SourceTransaction.source == self.source, near)
         return [_stored(row) for row in await service._execute_select_command(statement)]
 
+    async def period_rows(self, first: date, last: date) -> List[StoredTx]:
+        statement = select(SourceTransaction).where(
+            SourceTransaction.user_id == self.user_id, SourceTransaction.source == self.source,
+            SourceTransaction.occurred_at >= datetime.combine(first, datetime.min.time()),
+            SourceTransaction.occurred_at < datetime.combine(last + timedelta(days=1), datetime.min.time()))
+        return [_stored(row) for row in await service._execute_select_command(statement)]
+
     async def apply(self, period_id: int, report: PeriodReport, plan: IngestPlan, status: str,
                     note: Optional[str], findings: List[Finding]) -> None:
         """New rows, corrections with their audit trail, findings and the period's result: all or nothing."""
@@ -220,7 +227,8 @@ class DbStore:
 
 def _pending(user_id: int):
     return and_(SourceTransaction.user_id == user_id, SourceTransaction.source == SOURCE,
-                SourceTransaction.delivery == 'new', SourceTransaction.status.in_(OFFERABLE))
+                SourceTransaction.delivery == 'new', SourceTransaction.status.in_(OFFERABLE),
+                SourceTransaction.missing_at.is_(None))
 
 
 async def pending_count(user_id: int) -> int:
@@ -282,7 +290,9 @@ def _unlinked(user_id: int):
 
     An operation recorded from a balance explanation is never offered here: a payment is tied to it only
     through the explanation (balance_queries.apply_match), which keeps the reconciliation from counting it twice."""
-    taken = select(SourceTransaction.accounting_id).where(SourceTransaction.accounting_id.isnot(None))
+    # A payment gone from the report no longer holds its operation: the corrected payment may take it over.
+    taken = select(SourceTransaction.accounting_id).where(SourceTransaction.accounting_id.isnot(None),
+                                                          SourceTransaction.missing_at.is_(None))
     explained = select(BalanceExplanation.accounting_id).where(BalanceExplanation.accounting_id.isnot(None))
     return and_(Accounting.user_id == user_id, Accounting.id.notin_(taken), Accounting.id.notin_(explained))
 

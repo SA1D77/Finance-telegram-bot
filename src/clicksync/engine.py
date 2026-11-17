@@ -10,7 +10,9 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, List, Optional, Protocol, Sequence, Set, Tuple
 
-from .core import IngestPlan, ParsedTx, PeriodReport, StoredTx, dedup_keys, fingerprint, plan_ingest, sync_target
+from timeutils import utc_now
+from .core import (IngestPlan, ParsedTx, PeriodReport, StoredTx, dedup_keys, fingerprint, plan_ingest, plan_vanished,
+                   sync_target)
 from .reconcile import balance_check
 
 logger = logging.getLogger(__name__)
@@ -84,6 +86,9 @@ class Store(Protocol):
     async def lookalikes(self, transactions: Sequence[ParsedTx]) -> List[StoredTx]:
         """Stored rows of the same cards in the same minutes as these transactions."""
 
+    async def period_rows(self, first: date, last: date) -> List[StoredTx]:
+        """Stored rows whose printed time falls on these days (inclusive)."""
+
     async def apply(self, period_id: int, report: PeriodReport, plan: IngestPlan, status: str,
                     note: Optional[str], findings: List[Finding]) -> None:
         ...
@@ -106,7 +111,7 @@ def _findings(report: PeriodReport, plan: IngestPlan) -> List[Finding]:
     findings: List[Finding] = []
     label = _period_label(report)
     for update in plan.updates:
-        if not update.needs_review:
+        if not update.needs_review or 'missing_at' in update.changes:
             continue
         changed = ', '.join(sorted(update.changes))
         findings.append(Finding(
@@ -134,6 +139,21 @@ def _findings(report: PeriodReport, plan: IngestPlan) -> List[Finding]:
     return findings
 
 
+def _vanished_findings(report: PeriodReport, plan: IngestPlan) -> List[Finding]:
+    """A recorded payment the report no longer shows: the owner decides what happens to the operation."""
+    findings = []
+    for update in plan.updates:
+        old, new = update.changes.get('missing_at', (None, None))
+        if update.needs_review and old is None and new is not None:
+            tx = update.stored
+            findings.append(Finding(
+                kind='missing_from_report', transaction_id=tx.id, account=tx.account, currency=tx.currency,
+                fingerprint=fingerprint('missing_report', tx.id, tx.dedup_key),
+                details=f'Платёж уже записан в учёт, но в полном отчёте Click за {_period_label(report)} его больше нет '
+                        '(отменён или исправлен под другим названием). Платёж больше не учитывается в сверке баланса.'))
+    return findings
+
+
 async def _process(store: Store, report: PeriodReport, start_date: date, result: RunResult) -> None:
     period_id = await store.begin_period(report.start, report.end)
     try:
@@ -145,8 +165,22 @@ async def _process(store: Store, report: PeriodReport, start_date: date, result:
         unmatched = [tx for tx, (key, _) in zip(wanted, keys) if key not in existing]
         lookalikes = await store.lookalikes(unmatched) if unmatched else []
         plan = plan_ingest(existing, wanted, keys, lookalikes)
-        status = 'completed' if report.complete else 'incomplete'
-        await store.apply(period_id, scoped, plan, status, report.note, _findings(scoped, plan))
+        findings = _findings(scoped, plan)
+        complete, note = report.complete, report.note
+        if complete:
+            # Only a report read in full can say that a payment is no longer there.
+            first = max(report.start, start_date)
+            rows = await store.period_rows(first, report.end) if first <= report.end else []
+            seen = {row.id for row in existing.values()}
+            if plan_vanished(plan, rows, seen, utc_now()):
+                findings += _vanished_findings(scoped, plan)
+            else:
+                complete, note = False, 'в отчёте нет многих платежей, которые были в нём раньше'
+                findings.append(Finding(
+                    kind='report_shrank', fingerprint=fingerprint('shrank', report.start, report.end, len(rows), len(wanted)),
+                    details=f'В отчёте за {_period_label(report)} нет многих платежей, которые были в нём раньше. '
+                            'Похоже на сбой отчёта Click: ничего не помечено, период будет прочитан снова.'))
+        await store.apply(period_id, scoped, plan, 'completed' if complete else 'incomplete', note, findings)
     except SyncError:
         raise
     except Exception as error:
@@ -161,7 +195,7 @@ async def _process(store: Store, report: PeriodReport, start_date: date, result:
     result.inserted += len(plan.inserts)
     result.updated += len(plan.updates)
     result.unchanged += plan.unchanged
-    if report.complete:
+    if complete:
         result.periods_ok += 1
     else:
         result.periods_incomplete += 1

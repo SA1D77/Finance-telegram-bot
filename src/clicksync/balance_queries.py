@@ -202,7 +202,7 @@ async def recompute(user_id: int, now: datetime, grace: timedelta, boundary: tim
         payments = list(await service._execute_select_command(
             select(SourceTransaction).where(
                 SourceTransaction.user_id == user_id, SourceTransaction.source == SOURCE,
-                SourceTransaction.currency == interval.currency,
+                SourceTransaction.currency == interval.currency, SourceTransaction.missing_at.is_(None),
                 SourceTransaction.occurred_at >= local_from, SourceTransaction.occurred_at <= local_to)))
         relevant = [p for p in payments if not p.account or p.account[-4:] == interval.last4]
         reply_ambiguous = any(ambiguous.get(i, False) for i in (interval.start_snapshot_id, interval.end_snapshot_id))
@@ -316,7 +316,8 @@ async def apply_match(user_id: int, explanation_id: int, transaction_id: int, re
             BalanceExplanation.id == explanation_id, BalanceExplanation.user_id == user_id).with_for_update())).scalar()
         tx = (await session.execute(select(SourceTransaction).where(
             SourceTransaction.id == transaction_id, SourceTransaction.user_id == user_id,
-            SourceTransaction.source == SOURCE, SourceTransaction.delivery == 'new').with_for_update())).scalar()
+            SourceTransaction.source == SOURCE, SourceTransaction.delivery == 'new',
+            SourceTransaction.missing_at.is_(None)).with_for_update())).scalar()
         if explanation is None or tx is None:
             return False
         interval = (await session.execute(select(BalanceInterval).where(BalanceInterval.id == explanation.interval_id))).scalar()
@@ -366,6 +367,7 @@ async def auto_match(user_id: int, to_utc: Callable, from_utc: Callable) -> int:
             SourceTransaction.user_id == user_id, SourceTransaction.source == SOURCE,
             SourceTransaction.currency == interval.currency, SourceTransaction.delivery == 'new',
             SourceTransaction.status == 'completed', SourceTransaction.id.notin_(taken),
+            SourceTransaction.missing_at.is_(None),
             SourceTransaction.occurred_at > from_utc(interval.start_at),
             SourceTransaction.occurred_at <= from_utc(interval.end_at))))
         payments = [p for p in payments if p.account and p.account[-4:] == interval.last4]
@@ -383,7 +385,8 @@ async def explanation_candidates(user_id: int, transaction_id: int, boundary: ti
     """Explanations this waiting payment may be (a part of): same card, currency and direction, the payment's
     time within the explained interval, and enough left unmatched. For the owner to choose; never automatic."""
     tx = (await service._execute_select_command(select(SourceTransaction).where(
-        SourceTransaction.id == transaction_id, SourceTransaction.user_id == user_id, SourceTransaction.delivery == 'new')))
+        SourceTransaction.id == transaction_id, SourceTransaction.user_id == user_id, SourceTransaction.delivery == 'new',
+        SourceTransaction.missing_at.is_(None))))
     if not tx or not tx[0].account or tx[0].occurred_at is None:
         return []
     tx = tx[0]
