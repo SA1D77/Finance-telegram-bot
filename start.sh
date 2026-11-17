@@ -41,6 +41,16 @@ grep -qE '^FEATURE_RECEIPTS=1' src/.env && export INSTALL_RECEIPTS=1
 
 echo "Запускаю бота..."
 docker compose up -d --build
+# Click import (CLICK.md): the userbot starts only when it is switched on and the Telegram login was done.
+if grep -qE '^FEATURE_CLICK_SYNC=1' src/.env; then
+    # The folder itself (created by the login, owned by the container's root, so its contents are not visible here).
+    if [ -d secrets/clicksync ]; then
+        docker compose --profile click up -d clicksync
+        echo "Синхронизация с Click запущена."
+    else
+        echo "Синхронизация с Click включена, но вход в Telegram не выполнен. См. CLICK.md, шаг 4."
+    fi
+fi
 echo
 echo "Бот запущен и будет сам стартовать после перезагрузки. Напишите ему /start в Telegram."
 echo "Логи: docker compose logs -f app      Остановить: ./stop.sh"

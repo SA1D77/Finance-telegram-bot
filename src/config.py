@@ -68,6 +68,8 @@ def _off_flag(name: str) -> bool:
 # Offline recognition, off by default because it adds large components to the image.
 FEATURE_VOICE = _off_flag('FEATURE_VOICE')
 FEATURE_RECEIPTS = _off_flag('FEATURE_RECEIPTS')
+# /click: import of @clickuz payment reports by the owner's userbot (clicksync service, see CLICK.md).
+FEATURE_CLICK_SYNC = _off_flag('FEATURE_CLICK_SYNC')
 VOSK_MODEL_PATH = os.environ.get('VOSK_MODEL_PATH') or '/opt/vosk-model'
 TESSERACT_LANG = os.environ.get('TESSERACT_LANG') or 'rus+eng'
 

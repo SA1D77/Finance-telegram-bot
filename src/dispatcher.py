@@ -1,7 +1,7 @@
 from aiogram import Dispatcher
 from aiogram.fsm.storage.base import BaseStorage
 
-from config import ACCESS_MODE, FEATURE_RECEIPTS, FEATURE_STATEMENTS, FEATURE_VOICE
+from config import ACCESS_MODE, FEATURE_CLICK_SYNC, FEATURE_RECEIPTS, FEATURE_STATEMENTS, FEATURE_VOICE
 from config import FEATURE_ANALYTICS, FEATURE_BUDGETS, FEATURE_HISTORY, FEATURE_EXPORT, FEATURE_GOALS, FEATURE_QUICK_INPUT, FEATURE_RECURRING
 from i18n import setup_middleware
 from middleware.ensure_user import EnsureUserMiddleware
@@ -65,6 +65,10 @@ def create_dispatcher(storage: BaseStorage, owner_id: int, public: bool = ACCESS
     if export:
         from export.handlers import router as export_router
         dp.include_router(export_router)
+    if FEATURE_CLICK_SYNC:
+        # Owner only: controls of the @clickuz import and the queue of imported payments.
+        from clicksync.handlers import router as clicksync_router
+        dp.include_router(clicksync_router)
     if FEATURE_STATEMENTS:
         # Before quick entry: a forwarded bank notification with several payments is not one entry.
         from statements.handlers import router as statements_router

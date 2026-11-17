@@ -98,6 +98,29 @@ services:
     networks:
       - aiogram
 
+  # Userbot of the @clickuz report import (CLICK.md). Off by default:
+  #   docker compose --profile click run --rm clicksync python -m clicksync.login   (once, interactive)
+  #   docker compose --profile click up -d clicksync
+  clicksync:
+    image: aiogram
+    pull_policy: never
+    container_name: aiogram_clicksync
+    profiles: ["click"]
+    restart: unless-stopped
+    working_dir: /aiogram/src
+    command: ["python", "-m", "clicksync.worker"]
+    env_file:
+      - ./src/.env
+    volumes:
+      - .:/aiogram
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    networks:
+      - aiogram
+
   # Optional DB admin UI, off by default: docker compose --profile tools up -d pgadmin
   # Then open http://127.0.0.1:5050 (or through an SSH tunnel on a server).
   pgadmin:

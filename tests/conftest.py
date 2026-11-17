@@ -23,6 +23,9 @@ os.environ.setdefault('TIMEZONE', 'Asia/Tashkent')
 # The media router is registered only when these are on; the recognisers themselves are stubbed.
 os.environ.setdefault('FEATURE_VOICE', '1')
 os.environ.setdefault('FEATURE_RECEIPTS', '1')
+# /click is off by default; tests cover it, with the Click report times in Tashkent.
+os.environ.setdefault('FEATURE_CLICK_SYNC', '1')
+os.environ.setdefault('CLICK_TIMEZONE', 'Asia/Tashkent')
 
 import pytest  # noqa: E402
 from aiogram import Bot  # noqa: E402

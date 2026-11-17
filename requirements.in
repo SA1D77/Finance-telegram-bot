@@ -16,3 +16,6 @@ XlsxWriter
 celery
 
 matplotlib
+
+# Userbot for the @clickuz report import (clicksync service)
+Telethon

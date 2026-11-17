@@ -7,3 +7,7 @@ venv/
 **/diagrams
 **/report/generated
 backups/
+# Telegram session of the Click import and downloaded reports: never commit
+secrets/
+*.session
+*.session-journal

@@ -46,6 +46,8 @@ Manage your finances with ease with the help of the telegram bot **Finance Contr
 
 🏦 **Bank statements:** forward or paste payment notifications from bank bots (`➖ 37'000 UZS`, `🔹 merchant`, `🕘 21:48 23.10.2026`, `✅ Успешно`): the bot finds every payment, skips unsuccessful ones and those already recorded, and asks for a category one by one, offering the category last used for that merchant first; "📦 All the rest here" files the remaining ones at once. Operations keep the real payment time and the merchant as the comment; foreign currencies are converted by the rate of that day. `FEATURE_STATEMENTS=0` turns it off.
 
+🔄 **Click sync (owner, off by default):** an optional userbot (`clicksync` service, Telethon, your own Telegram session) opens the @clickuz payment reports, walks the periods back to a chosen date and keeps a ledger of every payment with deduplication, status changes and an audit trail. `/click` shows the status and lets you classify, link or skip each payment; nothing reaches the accounting without your decision. Setup and limits in Russian: [CLICK.md](CLICK.md). `FEATURE_CLICK_SYNC=1` turns it on.
+
 ## How to get started
 
 1. **Launching the bot**: After clicking on the `start` button, we are   greeted with a greeting and a button panel appears to control the bot.

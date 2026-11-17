@@ -34,6 +34,8 @@ class Payment:
     merchant: Optional[str]
     when: Optional[datetime]  # local time, naive
     failed: bool = False
+    card: Optional[str] = None  # masked card number as printed after 💳
+    confirmed: bool = False     # the block has a ✅ line
 
 
 def _amount(raw: str) -> Optional[Decimal]:
@@ -95,7 +97,13 @@ def parse_statement(text: Optional[str]) -> List[Payment]:
         if when is not None:
             current.when = when
             continue
-        if line.startswith(_SKIP_LINE_PREFIXES) or '✅' in line:
+        if '✅' in line:
+            current.confirmed = True
+            continue
+        if line.startswith('💳'):
+            current.card = current.card or _EMOJI_PREFIX_RE.sub('', line).strip()[:32] or None
+            continue
+        if line.startswith(_SKIP_LINE_PREFIXES):
             continue
         if current.merchant is None:
             merchant = _EMOJI_PREFIX_RE.sub('', line).strip()

@@ -36,6 +36,7 @@ import accounting.models  # noqa: F401  registers the accounting tables on Base
 import budgets.models  # noqa: F401
 import recurring.models  # noqa: F401
 import goals.models  # noqa: F401
+import clicksync.models  # noqa: F401
 from user.models import Base
 target_metadata = Base.metadata
 
