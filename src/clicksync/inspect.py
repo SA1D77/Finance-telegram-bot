@@ -77,25 +77,38 @@ async def main() -> int:
     return 0
 
 
+# Buttons that lead to money operations or account changes: inspect refuses to press them.
+FORBIDDEN = ('оплат', 'перевод', 'добавить карт', 'подписк', 'qr', 'настройк', 'мошеннич', 'написать', 'удалить',
+             'скрыть баланс')
+
+
+def is_forbidden(label: str) -> bool:
+    return any(word in (label or '').casefold() for word in FORBIDDEN)
+
+
 async def _walk(client, port: TelethonPort, transcript: List[Dict[str, Any]], command: str) -> None:
+    seen: Dict[int, Any] = {}     # message id -> (text, buttons) last written to the transcript
     while True:
         messages = [m for m in await client.get_messages(port.entity, limit=3) if not m.out]
         if not messages:
             print('(сообщений от бота пока нет)')
+        # Buttons of every shown message, numbered through: an inline keyboard is often not on the last one.
+        buttons: List[Any] = []     # (message, index within the message, MessageButton)
         for message in reversed(messages):
             print('─' * 40)
             print(message.raw_text or '(без текста)')
             if message.document is not None:
                 print('[к сообщению прикреплён файл]')
-        latest = messages[0] if messages else None
-        buttons = _flat_buttons(latest) if latest is not None else []
-        for number, button in enumerate(buttons, start=1):
-            print(f'  [{number}] {button.text}   ({_kind(button.button)})')
-        if latest is not None:
-            entry = describe(latest)
-            entry['id_order'] = len(transcript) + 1
-            if not transcript or transcript[-1]['text'] != entry['text'] or transcript[-1]['buttons'] != entry['buttons']:
+            for index, button in enumerate(_flat_buttons(message)):
+                buttons.append((message, index, button))
+                print(f'  [{len(buttons)}] {button.text}   ({_kind(button.button)})')
+            entry = describe(message)
+            key = (entry['text'], entry['buttons'])
+            if seen.get(message.id) != key:
+                seen[message.id] = key
+                entry['id_order'] = len(transcript) + 1
                 transcript.append(entry)
+        latest = messages[0] if messages else None
 
         choice = _ask('> ').lower()
         if choice == 'q':
@@ -106,7 +119,8 @@ async def _walk(client, port: TelethonPort, transcript: List[Dict[str, Any]], co
             if _ask(f'Отправить боту «{command}»? (y/n) ').lower() == 'y':
                 await port.send(command)
                 transcript.append({'action': f'sent {command}'})
-                await asyncio.sleep(2)
+                print('Жду ответа бота...')
+                await asyncio.sleep(5)
             continue
         if choice == 'f':
             if latest is not None and latest.document is not None:
@@ -117,10 +131,13 @@ async def _walk(client, port: TelethonPort, transcript: List[Dict[str, Any]], co
                 print('В последнем сообщении нет файла.')
             continue
         if choice.isdigit() and 1 <= int(choice) <= len(buttons):
-            button = buttons[int(choice) - 1]
+            message, index, button = buttons[int(choice) - 1]
             kind = _kind(button.button)
             if kind not in ('callback', 'text'):
                 print('Это ссылка или особая кнопка, её нажимать не нужно.')
+                continue
+            if is_forbidden(button.text):
+                print('Эта кнопка не относится к отчётам, программа её не нажимает.')
                 continue
             if _ask(f'Нажать «{button.text}»? (y/n) ').lower() != 'y':
                 continue
@@ -128,8 +145,9 @@ async def _walk(client, port: TelethonPort, transcript: List[Dict[str, Any]], co
             if kind == 'text':
                 await port.send(button.text)
             else:
-                await port.press(latest.id, int(choice) - 1)
-            await asyncio.sleep(2)
+                await port.press(message.id, index)
+            print('Жду ответа бота...')
+            await asyncio.sleep(5)
             continue
         print('Не понял. Введите номер кнопки, s, r, f или q.')
 

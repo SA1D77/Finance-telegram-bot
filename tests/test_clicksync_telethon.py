@@ -25,3 +25,11 @@ def test_url_button():
 
 def test_other_buttons_are_never_pressed():
     assert _kind(button(types.ButtonTypeRequestPhone())) == 'other'
+
+
+def test_inspect_refuses_money_buttons():
+    from clicksync.inspect import is_forbidden
+    for label in ('💸 Оплата', '🔀 Переводы', '💳 Добавить карту', '👑 Click Подписка', '📸 QR cканер'):
+        assert is_forbidden(label), label
+    for label in ('💸 Платежи', '📊 Отчеты', '◀️', 'Скачать'):
+        assert not is_forbidden(label), label
