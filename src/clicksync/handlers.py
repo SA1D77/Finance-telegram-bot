@@ -30,6 +30,7 @@ from . import balance_handlers, balance_queries, queries, settings
 from .balance_texts import money
 from .reconcile import balance_check, consolidated, totals_by_account
 from .texts import amount, discrepancy_text, tx_card, tx_line
+from .ui import edit_text
 
 router = Router(name='clicksync')
 router.message.filter(F.from_user.id == OWNER_ID)
@@ -119,7 +120,7 @@ async def click_command(message: types.Message):
 async def home(callback_query: types.CallbackQuery, state: FSMContext):
     await state.set_state(None)
     text, markup = await _status()
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
     await callback_query.answer()
 
 
@@ -132,7 +133,7 @@ async def sync_now(callback_query: types.CallbackQuery):
     await queries.request_sync(OWNER_ID)
     await callback_query.answer('Запрос отправлен помощнику. Пришлю сообщение, когда появятся новые платежи.', show_alert=True)
     text, markup = await _status()
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
 
 
 @router.callback_query(F.data.in_({'cs:pause', 'cs:resume'}))
@@ -141,7 +142,7 @@ async def pause(callback_query: types.CallbackQuery):
     await queries.set_paused(OWNER_ID, paused)
     await callback_query.answer('Автосинхронизация на паузе' if paused else 'Автосинхронизация включена')
     text, markup = await _status()
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
 
 
 # --- Start date -----------------------------------------------------------------------------
@@ -232,7 +233,7 @@ async def _show_next(callback_query: types.CallbackQuery, note: Optional[str] = 
         text, markup = await _card(tx)
         if note:
             text = note + '\n\n' + text
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
 
 
 @router.callback_query(F.data == 'cs:q')
@@ -329,7 +330,7 @@ async def link_menu(callback_query: types.CallbackQuery):
     rows.append([_button('⬅️ Назад', 'cs:q')])
     text = tx_card(tx) + '\n\n' + ('С какой записью в учёте это тот же платёж?' if found else
                                    'В учёте нет свободных записей с такой суммой рядом по времени (±3 дня).')
-    await callback_query.message.edit_text(text=text, reply_markup=_markup(*rows))
+    await edit_text(callback_query.message, text=text, reply_markup=_markup(*rows))
     await callback_query.answer()
 
 
@@ -360,7 +361,7 @@ async def discrepancies(callback_query: types.CallbackQuery):
     rows = [[_button(('🕓 ' if d.status == 'unresolved' else '❗ ') + KIND.get(d.kind, d.kind)[:50], f'cs:dv:{d.id}')] for d in items]
     rows.append([_button('⬅️ Назад', 'cs:home')])
     text = 'Открытые вопросы (🕓 — оставлены нерешёнными):' if items else 'Открытых вопросов нет.'
-    await callback_query.message.edit_text(text=text, reply_markup=_markup(*rows))
+    await edit_text(callback_query.message, text=text, reply_markup=_markup(*rows))
     await callback_query.answer()
 
 
@@ -381,7 +382,7 @@ async def discrepancy_view(callback_query: types.CallbackQuery):
     if d.status == 'open' or d.status == 'unresolved':
         rows.append([_button('✅ Решено', f'cs:dr:{d.id}'), _button('🕓 Оставить нерешённым', f'cs:du:{d.id}')])
     rows.append([_button('⬅️ К вопросам', 'cs:d')])
-    await callback_query.message.edit_text(text=discrepancy_text(d, period, transactions, tx), reply_markup=_markup(*rows))
+    await edit_text(callback_query.message, text=discrepancy_text(d, period, transactions, tx), reply_markup=_markup(*rows))
     await callback_query.answer()
 
 
@@ -426,7 +427,8 @@ async def discrepancy_link_menu(callback_query: types.CallbackQuery):
     rows = [[_button(f'{format_local(op.created_at)} · {op.comment or "без комментария"}'[:60], f'cs:dk:{d.id}:{op.id.hex}')]
             for op in found]
     rows.append([_button('⬅️ Назад', f'cs:dv:{d.id}')])
-    await callback_query.message.edit_text(
+    await edit_text(
+        callback_query.message,
         text=tx_card(tx) + '\n\n' + ('Выберите запись в учёте:' if found else 'Свободных записей с такой суммой рядом (±7 дней) нет.'),
         reply_markup=_markup(*rows))
     await callback_query.answer()
@@ -506,7 +508,7 @@ async def reconciliation(callback_query: types.CallbackQuery):
     text = reconciliation_text(transactions, periods, await queries.delivery_counts(OWNER_ID))
     if raised:
         text += f'\n\n❗ Найдено новых расхождений с учётом: {raised}. Смотрите «Вопросы».'
-    await callback_query.message.edit_text(text=text, reply_markup=_markup([_button('⬅️ Назад', 'cs:home')]))
+    await edit_text(callback_query.message, text=text, reply_markup=_markup([_button('⬅️ Назад', 'cs:home')]))
     await callback_query.answer()
 
 

@@ -142,8 +142,8 @@ def _minute(value: Optional[datetime]) -> Optional[datetime]:
 
 
 def _same_payment(tx: ParsedTx, stored: StoredTx) -> bool:
-    """The stored row is this payment re-keyed: same card, minute, merchant and currency, and only the amount
-    or the source's id differs (an id appearing, or a corrected amount)."""
+    """A candidate correction. Merchant changes need the exact timestamp and unchanged amount;
+    amount/id changes still need the same merchant. The caller checks uniqueness in both directions."""
     if stored.occurred_at is None or tx.occurred_at is None:
         return False
 
@@ -151,11 +151,13 @@ def _same_payment(tx: ParsedTx, stored: StoredTx) -> bool:
         return ' '.join((text or '').casefold().split())
 
     same = ((stored.account or '') == (tx.account or ''), _minute(stored.occurred_at) == _minute(tx.occurred_at),
-            (stored.currency or '').upper() == (tx.currency or '').upper(), words(stored.description) == words(tx.description))
+            (stored.currency or '').upper() == (tx.currency or '').upper())
     if not all(same):
         return False
     if tx.source_id and stored.source_id and tx.source_id != stored.source_id:
         return False    # two payments, each with its own id
+    if words(stored.description) != words(tx.description):
+        return bool(tx.account and tx.currency and tx.amount == stored.amount and tx.occurred_at == stored.occurred_at)
     return tx.amount != stored.amount or bool(tx.source_id) != bool(stored.source_id)
 
 
@@ -166,12 +168,13 @@ def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
     `lookalikes` are stored rows near the unmatched transactions (same card and minute). The key holds the
     amount and the source's id, so a corrected amount or an id that appears later gives a new key; such a
     row is matched to the stored one and re-keyed instead of being inserted a second time. Only a stored row
-    that no transaction of this report matched by key can be taken, and only when exactly one fits: two
-    different payments that are both still in the report are never merged.
+    that no transaction of this report matched by key can be taken, and only with a unique match in both
+    directions. Merchant corrections additionally require the exact timestamp and unchanged amount.
     """
     plan = IngestPlan()
     planned = set()
     matched_ids = {existing[key].id for key, _ in keys if key in existing}
+    unmatched = list({key: tx for tx, (key, _) in zip(transactions, keys) if key not in existing}.values())
     taken: set = set()
     for tx, (key, ambiguous) in zip(transactions, keys):
         if key in planned:      # the same source id printed twice in one report
@@ -183,15 +186,13 @@ def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
         if stored is None:
             fits = [row for row in lookalikes
                     if row.id not in matched_ids and row.id not in taken and _same_payment(tx, row)]
-            if len(fits) != 1:
-                plan.inserts.append((key, ambiguous, tx))
+            if len(fits) != 1 or sum(_same_payment(candidate, fits[0]) for candidate in unmatched) != 1:
+                plan.inserts.append((key, ambiguous or bool(fits), tx))
                 continue
             stored = fits[0]
             taken.add(stored.id)
-            if tx.source_id is None and stored.source_id and tx.amount == stored.amount:
-                plan.unchanged += 1     # the id is just not printed this time: keep the row and its key
-                continue
-            rekey['dedup_key'] = (stored.dedup_key, key)
+            if not (tx.source_id is None and stored.source_id and tx.amount == stored.amount):
+                rekey['dedup_key'] = (stored.dedup_key, key)
         changes: Dict[str, Tuple[Any, Any]] = dict(rekey)
         if tx.status != stored.status and tx.status != 'unknown':
             changes['status'] = (stored.status, tx.status)
@@ -211,8 +212,9 @@ def plan_ingest(existing: Dict[str, StoredTx], transactions: Sequence[ParsedTx],
         recorded = stored.delivery in ('delivered', 'linked')
         became_invalid = 'status' in changes and stored.status == 'completed'
         turned = 'direction' in changes and stored.direction != 'unknown'
+        reviewed_change = became_invalid or turned or 'amount' in changes or 'description' in changes
         plan.updates.append(TxUpdate(stored=stored, changes=changes,
-                                     needs_review=recorded and (became_invalid or 'amount' in changes or turned)))
+                                     needs_review=recorded and reviewed_change))
     return plan
 
 

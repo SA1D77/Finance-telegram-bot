@@ -23,6 +23,7 @@ from telegram.validation import checked_amount, normalize_expression
 from timeutils import utc_now
 from . import balance_queries, queries, settings
 from .balance_texts import balances_text, card_name, confirm_text, interval_text, money, span
+from .ui import edit_text
 
 router = Router(name='clicksync_balance')
 router.message.filter(F.from_user.id == OWNER_ID)
@@ -118,7 +119,7 @@ async def overview():
 async def balances(callback_query: types.CallbackQuery, state: FSMContext):
     await state.set_state(None)
     text, markup = await overview()
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
     await callback_query.answer()
 
 
@@ -127,7 +128,7 @@ async def check_now(callback_query: types.CallbackQuery):
     await balance_queries.request_balance(OWNER_ID)
     await callback_query.answer('Запрос отправлен помощнику: он проверит баланс в Click и пришлёт результат.', show_alert=True)
     text, markup = await overview()
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
 
 
 # --- One interval ------------------------------------------------------------------------------------
@@ -159,7 +160,7 @@ async def view(callback_query: types.CallbackQuery, state: FSMContext):
         await callback_query.answer()
         return
     text, markup = await _interval_view(ids[0])
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
     await callback_query.answer()
 
 
@@ -176,7 +177,7 @@ async def set_aside(callback_query: types.CallbackQuery):
         done = await balance_queries.snooze(OWNER_ID, ids[0], utc_now() + SNOOZE)
         note = '⏰ Напомню завтра.'
     text, markup = await _interval_view(ids[0], note if done else 'ℹ️ Этот промежуток уже закрыт.')
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
     await callback_query.answer()
 
 
@@ -194,7 +195,7 @@ async def choose_kind(callback_query: types.CallbackQuery, state: FSMContext):
         categories = await _show_all_categories(OWNER_ID, kind_of(RECORDED[kind]))
         rows = buttons.category_grid(categories, f'cb:c:{interval.id}:{SHORT[kind]}:')
         rows.append([_button('⬅️ Назад', f'cb:v:{interval.id}')])
-        await callback_query.message.edit_text(text='Выберите категорию:', reply_markup=_markup(*rows))
+        await edit_text(callback_query.message, text='Выберите категорию:', reply_markup=_markup(*rows))
     else:
         await _ask_amount(callback_query.message, state, interval, kind, None, None)
     await callback_query.answer()
@@ -221,7 +222,8 @@ async def _ask_amount(message: types.Message, state: FSMContext, interval, kind:
     await state.update_data(balance={'interval': interval.id, 'kind': kind, 'category': category_id,
                                      'category_name': category_name})
     whole = money(abs(interval.remaining), interval.currency)
-    await message.edit_text(
+    await edit_text(
+        message,
         text=f'Какая сумма? Не объяснено {whole}. Можно всю сумму или часть: остальное останется вопросом.\n'
              'Чтобы указать часть, напишите сумму сообщением.',
         reply_markup=_markup([_button(f'Вся сумма: {whole}', f'cb:a:{interval.id}')],
@@ -249,7 +251,7 @@ async def whole_amount(callback_query: types.CallbackQuery, state: FSMContext):
     if shown is None:
         await callback_query.answer('Начните заново: откройте промежуток ещё раз.', show_alert=True)
         return
-    await callback_query.message.edit_text(text=shown[0], reply_markup=shown[1])
+    await edit_text(callback_query.message, text=shown[0], reply_markup=shown[1])
     await callback_query.answer()
 
 
@@ -320,7 +322,7 @@ async def confirm(callback_query: types.CallbackQuery, state: FSMContext):
     if result == 'ok' and operation and RECORDED[kind] == OperationType.expenditure:
         await schedule_budget_check(OWNER_ID)
     text, markup = await _interval_view(interval.id, note)
-    await callback_query.message.edit_text(text=text, reply_markup=markup)
+    await edit_text(callback_query.message, text=text, reply_markup=markup)
     await callback_query.answer()
 
 
