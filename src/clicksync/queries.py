@@ -18,7 +18,8 @@ from timeutils import utc_now
 from user.models import User
 from .core import IngestPlan, ParsedTx, PeriodReport, StoredTx, fingerprint
 from .engine import Finding
-from .models import Discrepancy, SourceTransaction, SourceTransactionAudit, SyncPeriod, SyncState
+from .models import (BalanceExplanation, Discrepancy, ExplanationMatch, SourceTransaction, SourceTransactionAudit,
+                     SyncPeriod, SyncState)
 
 SOURCE = 'clickuz'
 # Statuses a transaction may be offered for recording with ('unknown' is shown with a warning).
@@ -95,9 +96,12 @@ async def mark_started(user_id: int) -> None:
     await _set_state(user_id, sync_requested=False, last_started_at=utc_now())
 
 
-async def mark_finished(user_id: int, error: Optional[str]) -> None:
+async def mark_finished(user_id: int, error: Optional[str], partial: bool = False) -> None:
+    """ok: everything read. partial: the run went through, what was read is stored, but some periods failed or
+    are incomplete (retried soon, `last_ok_at` unchanged). failed: the run stopped."""
     now = utc_now()
-    values: Dict[str, Any] = {'last_finished_at': now, 'last_error': error[:255] if error else None}
+    values: Dict[str, Any] = {'last_finished_at': now, 'last_error': error[:255] if error else None,
+                              'last_result': 'ok' if not error else ('partial' if partial else 'failed')}
     if not error:
         values['last_ok_at'] = now
     await _set_state(user_id, **values)
@@ -274,9 +278,13 @@ async def deliver(user_id: int, transaction_id: int, category_id: int, quantity:
 
 
 def _unlinked(user_id: int):
-    """Accounting operations of the user that no source transaction points at yet."""
+    """Accounting operations of the user that no source transaction points at yet.
+
+    An operation recorded from a balance explanation is never offered here: a payment is tied to it only
+    through the explanation (balance_queries.apply_match), which keeps the reconciliation from counting it twice."""
     taken = select(SourceTransaction.accounting_id).where(SourceTransaction.accounting_id.isnot(None))
-    return and_(Accounting.user_id == user_id, Accounting.id.notin_(taken))
+    explained = select(BalanceExplanation.accounting_id).where(BalanceExplanation.accounting_id.isnot(None))
+    return and_(Accounting.user_id == user_id, Accounting.id.notin_(taken), Accounting.id.notin_(explained))
 
 
 def _same_amount(amount: Decimal, currency: Optional[str], user_currency: Optional[str]):
@@ -441,8 +449,11 @@ async def check_ledger(user_id: int, user_currency: Optional[str]) -> int:
         findings.append(Finding(kind='accounting_missing', transaction_id=tx.id, account=tx.account, currency=tx.currency,
                                 fingerprint=fingerprint('missing', tx.id, tx.updated_at),
                                 details='Операция была записана в учёт, но этой записи больше нет (её удалили).'))
+    # A payment matched to a balance explanation may be only a part of that operation: not an amount mismatch.
+    matched = select(ExplanationMatch.transaction_id)
     rows = await service._execute_select_rows(
-        select(SourceTransaction, Accounting).join(Accounting, Accounting.id == SourceTransaction.accounting_id).where(recorded))
+        select(SourceTransaction, Accounting).join(Accounting, Accounting.id == SourceTransaction.accounting_id)
+        .where(recorded, SourceTransaction.id.notin_(matched)))
     for tx, operation in rows:
         same_currency = not (tx.currency and user_currency and tx.currency != user_currency)
         held = operation.original_amount if operation.original_amount is not None else (operation.quantity if same_currency else None)

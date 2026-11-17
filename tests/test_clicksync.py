@@ -774,8 +774,9 @@ def worker_db(monkeypatch):
     async def get_state(user_id):
         return SimpleNamespace(last_error=log.get('previous_error'))
 
-    async def mark_finished(user_id, error):
+    async def mark_finished(user_id, error, partial=False):
         log['finished'].append(error)
+        log.setdefault('partial', []).append(partial)
 
     async def pending_count(user_id):
         return next(pending)
@@ -794,6 +795,12 @@ def worker_db(monkeypatch):
                             mark_notified=mark_notified).items():
         monkeypatch.setattr(worker.queries, name, value)
     monkeypatch.setattr(worker.settings, 'to_utc', lambda value: value)
+
+    async def refresh(user_id):
+        log['refreshed'] = log.get('refreshed', 0) + 1
+        return {}
+
+    monkeypatch.setattr(worker, 'refresh_intervals', refresh)
     return log
 
 
@@ -903,6 +910,7 @@ async def test_a_run_with_unread_periods_is_not_a_success(worker_db, monkeypatch
 
     error = worker_db['finished'][0]
     assert 'с ошибкой: 1' in error and 'прочитано не полностью: 1' in error
+    assert worker_db['partial'] == [True]       # stored as last_result 'partial', not 'failed'
     assert any('не удалась' in call for call in notify.calls)
     # ...so the next automatic run comes after 15 minutes, not after the full interval
     assert worker.is_due(state(last_started_at=NOW - timedelta(minutes=16), last_finished_at=NOW - timedelta(minutes=15),

@@ -103,6 +103,14 @@ class SyncState(Base):
     last_finished_at = Column(TIMESTAMP, nullable=True)
     last_ok_at = Column(TIMESTAMP, nullable=True)
     last_error = Column(String(255), nullable=True)
+    # ok / partial (some periods failed or incomplete; what was read is kept) / failed
+    last_result = Column(String(8), nullable=True)
+    # Card balances (/balance)
+    balance_requested = Column(Boolean, nullable=False, default=False, server_default='false')
+    last_balance_at = Column(TIMESTAMP, nullable=True)          # last attempt, UTC
+    last_balance_ok_at = Column(TIMESTAMP, nullable=True)
+    last_balance_error = Column(String(255), nullable=True)
+    last_review_on = Column(Date, nullable=True)                # local date of the last daily review sent
 
 
 class Discrepancy(Base):
@@ -128,3 +136,122 @@ class Discrepancy(Base):
     created_at = Column(TIMESTAMP, nullable=False, default=utc_now)
     notified_at = Column(TIMESTAMP, nullable=True)
     resolved_at = Column(TIMESTAMP, nullable=True)
+
+
+# --- Card balances and their reconciliation --------------------------------------------------------------
+
+INTERVAL_STATUSES = ('waiting', 'ok', 'explained', 'unexplained', 'uncertain', 'unresolved')
+EXPLANATION_KINDS = ('expense', 'income', 'own_transfer', 'fee', 'refund', 'adjustment')
+
+
+class BalanceObservation(Base):
+    """One /balance request and its reply. A rejected reply is kept (status, error) without any amount."""
+    __tablename__ = 'balance_observations'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey(User.id), nullable=False, index=True)
+    source = Column(String(16), nullable=False)
+    requested_at = Column(TIMESTAMP, nullable=False)     # UTC
+    observed_at = Column(TIMESTAMP, nullable=False)      # UTC, when the reply was read
+    message_id = Column(BigInteger, nullable=True)       # of the reply in the source chat (no text is kept)
+    status = Column(String(10), nullable=False)          # ok / rejected
+    error = Column(String(255), nullable=True)
+
+
+class BalanceSnapshot(Base):
+    """A balance read from an accepted observation. kind 'total' is the aggregate and never a card."""
+    __tablename__ = 'balance_snapshots'
+    __table_args__ = (UniqueConstraint('observation_id', 'kind', 'card', 'currency', name='uq_balance_snapshots_row'),)
+
+    id = Column(Integer, primary_key=True)
+    observation_id = Column(Integer, ForeignKey(BalanceObservation.id, ondelete='CASCADE'), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey(User.id), nullable=False, index=True)
+    source = Column(String(16), nullable=False)
+    kind = Column(String(8), nullable=False)             # card / total
+    card = Column(String(32), nullable=False, default='')    # masked label as printed; '' for the total
+    last4 = Column(String(4), nullable=True)
+    ambiguous = Column(Boolean, nullable=False, default=False)  # another card of the reply ends the same
+    currency = Column(String(8), nullable=False)
+    amount = Column(SOURCE_MONEY, nullable=False)
+    observed_at = Column(TIMESTAMP, nullable=False)      # UTC, copied from the observation
+
+
+class BalanceInterval(Base):
+    """Two consecutive snapshots of one card in one currency and what the source transactions say about them."""
+    __tablename__ = 'balance_intervals'
+    __table_args__ = (UniqueConstraint('start_snapshot_id', 'end_snapshot_id', name='uq_balance_intervals_pair'),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey(User.id), nullable=False, index=True)
+    source = Column(String(16), nullable=False)
+    card = Column(String(32), nullable=False)
+    last4 = Column(String(4), nullable=True)
+    currency = Column(String(8), nullable=False)
+    start_snapshot_id = Column(Integer, ForeignKey(BalanceSnapshot.id, ondelete='CASCADE'), nullable=False)
+    end_snapshot_id = Column(Integer, ForeignKey(BalanceSnapshot.id, ondelete='CASCADE'), nullable=False)
+    start_at = Column(TIMESTAMP, nullable=False)         # UTC
+    end_at = Column(TIMESTAMP, nullable=False)
+    opening = Column(SOURCE_MONEY, nullable=False)
+    closing = Column(SOURCE_MONEY, nullable=False)
+    # The last calculation (see clicksync.balance_recon); NULL until computed.
+    incoming = Column(SOURCE_MONEY, nullable=True)
+    outgoing = Column(SOURCE_MONEY, nullable=True)
+    fees = Column(SOURCE_MONEY, nullable=True)
+    expected = Column(SOURCE_MONEY, nullable=True)
+    difference = Column(SOURCE_MONEY, nullable=True)     # closing - expected, before the owner's explanations
+    explained = Column(SOURCE_MONEY, nullable=True)      # signed sum of explanations not matched to the source
+    remaining = Column(SOURCE_MONEY, nullable=True)      # difference - explained
+    status = Column(String(12), nullable=False, default='waiting')
+    reason = Column(Text, nullable=True)                 # why uncertain / a note on how it fits
+    computed_at = Column(TIMESTAMP, nullable=True)
+    unresolved = Column(Boolean, nullable=False, default=False)     # "Не помню": kept open, not asked again
+    snoozed_until = Column(TIMESTAMP, nullable=True)     # "Проверить позже"
+    notified_at = Column(TIMESTAMP, nullable=True)
+    created_at = Column(TIMESTAMP, nullable=False, default=utc_now)
+
+
+class BalanceIntervalAudit(Base):
+    """Every recalculation that changed the result, with what it was based on, and every owner action."""
+    __tablename__ = 'balance_interval_audit'
+
+    id = Column(Integer, primary_key=True)
+    interval_id = Column(Integer, ForeignKey(BalanceInterval.id, ondelete='CASCADE'), nullable=False, index=True)
+    at = Column(TIMESTAMP, nullable=False, default=utc_now)
+    event = Column(String(24), nullable=False)           # computed / explained / unresolved / snoozed / matched ...
+    status = Column(String(12), nullable=True)
+    remaining = Column(SOURCE_MONEY, nullable=True)
+    details = Column(Text, nullable=True)                # ids of transactions and explanations used, reason
+
+
+class BalanceExplanation(Base):
+    """The owner's account of (a part of) an unexplained change. Kept apart from source transactions.
+
+    `token` makes the confirmation idempotent: a repeated click finds the row and writes nothing twice.
+    """
+    __tablename__ = 'balance_explanations'
+    __table_args__ = (UniqueConstraint('user_id', 'token', name='uq_balance_explanations_token'),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey(User.id), nullable=False, index=True)
+    interval_id = Column(Integer, ForeignKey(BalanceInterval.id, ondelete='CASCADE'), nullable=False, index=True)
+    token = Column(String(32), nullable=False)
+    kind = Column(String(16), nullable=False)
+    direction = Column(String(4), nullable=False)        # out: the balance went down; in: up
+    amount = Column(SOURCE_MONEY, nullable=False)        # positive, in the card's currency
+    currency = Column(String(8), nullable=False)
+    category_id = Column(Integer, nullable=True)
+    accounting_id = Column(UUID(as_uuid=True), ForeignKey(Accounting.id, ondelete='SET NULL'), nullable=True)
+    created_at = Column(TIMESTAMP, nullable=False, default=utc_now)
+
+
+class ExplanationMatch(Base):
+    """A source transaction that turned out to be (part of) an explanation. A transaction is used once."""
+    __tablename__ = 'balance_explanation_matches'
+    __table_args__ = (UniqueConstraint('transaction_id', name='uq_balance_explanation_matches_tx'),)
+
+    id = Column(Integer, primary_key=True)
+    explanation_id = Column(Integer, ForeignKey(BalanceExplanation.id, ondelete='CASCADE'), nullable=False, index=True)
+    transaction_id = Column(Integer, ForeignKey(SourceTransaction.id, ondelete='CASCADE'), nullable=False)
+    amount = Column(SOURCE_MONEY, nullable=False)
+    reason = Column(String(16), nullable=False)          # auto / owner
+    created_at = Column(TIMESTAMP, nullable=False, default=utc_now)

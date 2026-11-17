@@ -9,11 +9,13 @@ Notifications go to the owner through the accounting bot (Bot API), never from t
 import asyncio
 import logging
 import sys
-from datetime import datetime, timedelta
-from typing import Awaitable, Callable, Optional
+from datetime import date, datetime, timedelta
+from typing import Awaitable, Callable, Dict, Optional, Tuple
 
 from config import OWNER_ID, TELEGRAM
-from . import queries, settings
+from . import balance_queries, queries, settings
+from .balance import BalanceRejected
+from .balance_texts import balances_text, card_name, review_text
 from .clickuz import ClickAdapter
 from .engine import RunResult, SyncError, run_sync
 from .texts import discrepancy_text
@@ -73,19 +75,122 @@ def partial_failure(result: RunResult) -> Optional[str]:
     return 'часть периодов не загружена (' + ', '.join(parts) + '), повторю позже. Подробности: /click → ❗ Вопросы'
 
 
+def balance_due(state, now: datetime, interval_minutes: int, enabled: bool = True) -> bool:
+    """A /balance check is due: asked for in the bot (works while paused and with automatic checks off), or the
+    interval passed (a failed check is retried after RETRY_AFTER)."""
+    if state is None:
+        return False
+    if state.balance_requested:
+        return True
+    if not enabled or state.paused:
+        return False
+    if state.last_balance_at is None:
+        return True
+    failed = state.last_balance_error is not None
+    wait = min(interval_minutes, RETRY_AFTER) if failed else interval_minutes
+    return now - state.last_balance_at >= timedelta(minutes=wait)
+
+
+def review_due(state, local_now: datetime, at: Tuple[int, int]) -> Optional[date]:
+    """The local date of a daily review that should be sent now, or None (not yet time, or already sent today).
+
+    Restart-safe: the date sent is stored (sync_state.last_review_on); a review missed while the worker was down
+    is sent once when it is back the same day, never for past days."""
+    if state is None:
+        return None
+    today = local_now.date()
+    if (local_now.hour, local_now.minute) < at:
+        return None
+    if state.last_review_on is not None and state.last_review_on >= today:
+        return None
+    return today
+
+
+def _timing():
+    return dict(grace=timedelta(hours=settings.BALANCE_GRACE_HOURS),
+                boundary=timedelta(minutes=settings.BALANCE_BOUNDARY_MINUTES),
+                recheck_days=settings.BALANCE_RECHECK_DAYS, to_utc=settings.to_utc, from_utc=settings.from_utc)
+
+
+async def refresh_intervals(user_id: int) -> Dict[str, int]:
+    """New intervals from new snapshots, strong matches of explanations, then every recent interval recomputed."""
+    await balance_queries.build_intervals(user_id)
+    await balance_queries.auto_match(user_id, settings.to_utc, settings.from_utc)
+    return await balance_queries.recompute(user_id, utc_now(), **_timing())
+
+
+async def check_balance(user_id: int, adapter_factory: Callable[[], Awaitable[ClickAdapter]], notify: Notifier) -> bool:
+    """One /balance check. A reply that cannot be read safely is recorded as rejected; nothing is read as zero
+    and the snapshots stay as they were. Returns whether a snapshot was stored."""
+    previous = await queries.get_state(user_id)
+    manual = previous is not None and previous.balance_requested
+    requested_at = utc_now()
+    error, stored = None, False
+    try:
+        adapter = await adapter_factory()
+        reply, message_id = await adapter.read_balance()
+        await balance_queries.save_observation(user_id, requested_at, utc_now(), message_id, reply)
+        stored = True
+    except BalanceRejected as rejected:
+        error = f'ответ Click на /balance не распознан: {rejected}'
+        await balance_queries.save_rejection(user_id, requested_at, utc_now(), error)
+    except SyncError as failure:
+        error = str(failure)
+    except (ConnectionError, OSError, asyncio.TimeoutError) as failure:
+        error = f'нет связи с Telegram ({type(failure).__name__}), повторю позже'
+    except Exception as failure:
+        logger.exception('Balance check failed')
+        error = f'внутренняя ошибка: {type(failure).__name__}'
+    await balance_queries.mark_balance(user_id, error)
+    if error and (manual or previous is None or previous.last_balance_error != error):
+        await notify(f'⚠️ Проверка баланса Click не удалась: {error}', None)
+    if stored:
+        counts = await refresh_intervals(user_id)
+        if manual:
+            observed_at, snapshots = await balance_queries.latest_balances(user_id)
+            text = balances_text(observed_at, snapshots, settings.from_utc)
+            questions = len(await balance_queries.open_intervals(user_id, utc_now()))
+            text += f'\n\nНеясных изменений баланса: {questions}.' if questions else '\n\nНеясных изменений нет.'
+            if counts.get('waiting'):
+                text += f' Ждут отчёта Click: {counts["waiting"]}.'
+            await notify(text, {'inline_keyboard': [[{'text': '⚖️ Баланс карт', 'callback_data': 'cb:list'}]]})
+    return stored
+
+
+async def send_review(user_id: int, notify: Notifier, today: date) -> bool:
+    """The daily review, at most once a day: the date is claimed first and given back if Telegram refused."""
+    claimed = await balance_queries.claim_review(user_id, today)
+    if claimed is None:
+        return False
+    now = utc_now()
+    asked = await balance_queries.open_intervals(user_id, now)
+    others = await balance_queries.other_intervals(user_id, now)
+    if not asked:
+        return True     # nothing to ask: the day counts as reviewed, no message
+    rows = [[{'text': f'❓ {card_name(i.last4, i.card)} {settings.from_utc(i.end_at):%d.%m}', 'callback_data': f'cb:v:{i.id}'}]
+            for i in asked[:8]]
+    rows.append([{'text': '⚖️ Все промежутки', 'callback_data': 'cb:list'}])
+    if not await notify(review_text(asked, others, settings.from_utc), {'inline_keyboard': rows}):
+        await balance_queries.release_review(user_id, today, claimed)
+        return False
+    await balance_queries.mark_intervals_notified(user_id, [i.id for i in asked])
+    return True
+
+
 async def run_once(user_id: int, adapter_factory: Callable[[], Awaitable[ClickAdapter]], notify: Notifier,
                    today, user_currency: Optional[str]) -> Optional[RunResult]:
     """One synchronisation with its bookkeeping. Returns None when it failed (the error is stored)."""
     previous = await queries.get_state(user_id)
     await queries.mark_started(user_id)
     pending_before = await queries.pending_count(user_id)
-    result, error = None, None
+    result, error, partial = None, None, False
     try:
         adapter = await adapter_factory()
         result = await run_sync(adapter, queries.DbStore(user_id), today, settings.OVERLAP_DAYS)
         await queries.auto_link_exact(user_id, user_currency, settings.to_utc)
         await queries.check_ledger(user_id, user_currency)
         error = partial_failure(result)
+        partial = error is not None
     except SyncError as failure:
         error = str(failure)
     except (ConnectionError, OSError, asyncio.TimeoutError) as failure:
@@ -93,7 +198,7 @@ async def run_once(user_id: int, adapter_factory: Callable[[], Awaitable[ClickAd
     except Exception as failure:     # never let one bad run stop the process
         logger.exception('Sync run failed')
         error = f'внутренняя ошибка: {type(failure).__name__}'
-    await queries.mark_finished(user_id, error)
+    await queries.mark_finished(user_id, error, partial)
 
     new = await queries.pending_count(user_id) - pending_before
     if new > 0:
@@ -101,6 +206,11 @@ async def run_once(user_id: int, adapter_factory: Callable[[], Awaitable[ClickAd
     if error and (previous is None or previous.last_error != error):   # the same failure is reported once
         await notify(f'⚠️ Синхронизация с Click не удалась: {error}', None)
     await notify_findings(user_id, notify)
+    if result is not None and settings.TIMEZONE:
+        try:    # new payments may explain (or match explanations of) balance intervals
+            await refresh_intervals(user_id)
+        except Exception:
+            logger.exception('Balance intervals not refreshed')
     return result
 
 
@@ -138,6 +248,7 @@ async def main() -> int:
     try:
         settings.zone()
         settings.api_credentials()
+        review_at = settings.review_time()
     except settings.ConfigError as error:
         logger.critical('%s', error)
         return 1
@@ -173,6 +284,13 @@ async def main() -> int:
                 result = await run_once(OWNER_ID, adapter_factory, notify, today, await _user_currency(OWNER_ID))
                 if result is not None:
                     logger.info('Sync done: %d periods, %d new, %d updated', len(result.visited), result.inserted, result.updated)
+                state = await queries.get_state(OWNER_ID)
+            if balance_due(state, utc_now(), settings.BALANCE_INTERVAL_MINUTES, settings.BALANCE_ENABLED):
+                stored = await check_balance(OWNER_ID, adapter_factory, notify)
+                logger.info('Balance check: %s', 'stored' if stored else 'not stored')
+            day = review_due(state, datetime.now(settings.zone()).replace(tzinfo=None), review_at)
+            if settings.BALANCE_ENABLED and day is not None:
+                await send_review(OWNER_ID, notify, day)
         except Exception as failure:    # database restarting and the like: try again on the next tick
             logger.warning('Worker tick failed: %s', type(failure).__name__)
             try:

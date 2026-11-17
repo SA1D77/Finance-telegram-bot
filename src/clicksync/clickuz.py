@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Protocol, Set, Tuple
 
 from statements.parser import parse_statement
+from .balance import BalanceReply, is_balance_reply, parse_balance_reply
 from .core import ParsedTx, PeriodReport, mask_account, parse_period
 from .engine import SyncError
 from .report_file import UnknownReportFormat, parse_report_file
@@ -158,6 +159,30 @@ class ClickAdapter:
     async def _latest_id(self) -> int:
         messages = await self.port.recent(limit=1)
         return messages[0].id if messages else 0
+
+    # --- Balances --------------------------------------------------------------------------
+
+    async def read_balance(self) -> Tuple[BalanceReply, int]:
+        """Sends the balance command and reads the reply to THIS request.
+
+        Only a message newer than the last one before the request counts, so an old /balance reply is never
+        reused. If the bot edits its reply (a "loading" text first, or the numbers updated), the text is read
+        again until it stops changing. Raises BalanceRejected for a reply that cannot be read safely.
+        """
+        before = await self._latest_id()
+        await self.sleep(self.step_delay)
+        await self.port.send(self.profile.balance_command)
+        message = await self._wait(lambda m: m.id > before and is_balance_reply(m.text))
+        if message is None:
+            raise SyncError(f'Click не ответил на {self.profile.balance_command}.')
+        settled = message
+        for _attempt in range(3):
+            await self.sleep(1.0)
+            again = next((m for m in await self.port.recent() if m.id == message.id), None)
+            if again is None or again.text == settled.text:
+                break
+            settled = again
+        return parse_balance_reply(settled.text), settled.id
 
     # --- Reports ---------------------------------------------------------------------------
 

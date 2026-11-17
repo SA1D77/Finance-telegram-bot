@@ -26,13 +26,15 @@ from money import current_currency
 from telegram import buttons
 from telegram.validation import checked_amount
 from timeutils import format_local, utc_now
-from . import queries, settings
+from . import balance_handlers, balance_queries, queries, settings
+from .balance_texts import money
 from .reconcile import balance_check, consolidated, totals_by_account
 from .texts import amount, discrepancy_text, tx_card, tx_line
 
 router = Router(name='clicksync')
 router.message.filter(F.from_user.id == OWNER_ID)
 router.callback_query.filter(F.from_user.id == OWNER_ID)
+router.include_router(balance_handlers.router)
 
 ALIVE = timedelta(minutes=3)
 
@@ -75,7 +77,17 @@ async def _status() -> tuple:
     if state.last_ok_at:
         lines.append(f'✅ Последняя успешная: {format_local(state.last_ok_at)}')
     if state.last_error:
-        lines.append(f'⚠️ Последняя ошибка: {escape(state.last_error)}')
+        prefix = '⚠️ Последняя синхронизация прошла частично' if state.last_result == 'partial' else '⚠️ Последняя ошибка'
+        lines.append(f'{prefix}: {escape(state.last_error)}')
+    if settings.BALANCE_ENABLED:
+        balance_line = '💳 Баланс карт: ' + (f'проверен {format_local(state.last_balance_ok_at)}'
+                                            if state.last_balance_ok_at else 'ещё не проверялся')
+        if state.last_balance_error:
+            balance_line += f' (последняя попытка не удалась: {escape(state.last_balance_error)})'
+        lines.append(balance_line)
+    asked = len(await balance_queries.open_intervals(user_id, utc_now()))
+    if asked:
+        lines.append(f'❓ Неясных изменений баланса: {asked}')
     last = summary['last_ok']
     if last is not None:
         lines.append(f'🗓 Последний полный период: {last.period_start:%d.%m.%Y}–{last.period_end:%d.%m.%Y}')
@@ -92,6 +104,7 @@ async def _status() -> tuple:
         [_button('▶️ Продолжить' if state.paused else '⏸ Пауза', 'cs:resume' if state.paused else 'cs:pause'),
          _button('⚖️ Сверка', 'cs:rec')],
         [_button(f'❗ Вопросы ({questions})', 'cs:d'), _button('📤 Экспорт', 'cs:x')],
+        [_button('💳 Проверить баланс', 'cb:now'), _button(f'⚖️ Баланс карт ({asked})' if asked else '⚖️ Баланс карт', 'cb:list')],
     ]
     return '\n'.join(lines), _markup(*[row for row in rows if row])
 
@@ -194,6 +207,13 @@ async def _card(tx):
     else:
         text = (tx_card(tx, 1, total) + '\n\nВ файле Click у этого платежа нет знака. Это расход или доход?')
         rows.append([_button('➖ Расход', f'cs:dir:{tx.id}:out'), _button('➕ Доход', f'cs:dir:{tx.id}:in')])
+    # A payment the owner already explained in a balance check: offered first, recording it again would count it twice.
+    explained = await balance_handlers.candidates_for(tx)
+    if explained:
+        text += ('\n\n⚠️ Похоже, этот платёж вы уже объяснили при сверке баланса. Если это он, свяжите его, '
+                 'чтобы не записать дважды:')
+        rows = [[_button(f'🧩 Это {money(e.amount, e.currency)} от {format_local(i.end_at)}'[:60], f'cb:m:{tx.id}:{e.id}')]
+                for e, i, _left in explained[:3]] + rows
     # A transfer between own accounts is counted by its direction, so it is offered once the direction is known.
     row = [_button('🔗 Уже записано', f'cs:l:{tx.id}')]
     if tx.direction in ('in', 'out'):
